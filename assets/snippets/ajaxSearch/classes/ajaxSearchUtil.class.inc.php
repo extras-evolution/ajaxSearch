@@ -38,7 +38,7 @@ class AjaxSearchUtil {
         $this->tstart = $tstart;
 
         $msgErr = '';
-        $header = 'AjaxSearch ' . $version . ' - Php' . phpversion() . ' - MySql ' . (method_exists($modx->db, 'getVersion') ? $modx->db->getVersion() : mysql_get_server_info());
+        $header = 'AjaxSearch ' . $version . ' - Php' . phpversion() . ' - MySql ' . $modx->db->getVersion();
         if ($this->level > 0 && $level < 4) { // debug trace in a file
             $isWriteable = is_writeable(AS_DBGDIR);
             if ($isWriteable) {
