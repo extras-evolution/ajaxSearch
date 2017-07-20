@@ -3,12 +3,12 @@
  * 
  * Used with AjaxSearch to show search terms highlighted on page linked from search results
  *
- * @category  plugin
- * @version   1.5
- * @license   http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
- * @internal  @properties
- * @internal  @events OnWebPagePrerender 
- * @internal  @modx_category Search
+ * @category 	plugin
+ * @version 	1.5
+ * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
+ * @internal	@properties
+ * @internal	@events OnWebPagePrerender 
+ * @internal	@modx_category Search
  * @internal    @legacy_names Search Highlighting
  * @internal    @installset base, sample
  * @internal    @disabled 1
