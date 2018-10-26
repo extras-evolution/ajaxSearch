@@ -907,7 +907,7 @@ class AjaxSearchOutput {
                 if ($this->asCfg->cfg['addJscript']) $modx->regClientStartupScript($this->asCfg->cfg['jsMooTools']);
                 $jsInclude = MODX_BASE_URL . AS_SPATH . AJAXSEARCH_JSDIR . $typeAs . '/ajaxSearch.js';
             }
-            $modx->regClientStartupScript($jsInclude);
+            if ($this->asCfg->cfg['addJscript']) $modx->regClientStartupScript($jsInclude);
 
             $json = '{"vsn":"' . AS_VERSION . '"';
             $json.= ',"adv":"' . $this->asCtrl->advSearch . '"';
