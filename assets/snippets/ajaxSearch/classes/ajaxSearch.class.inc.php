@@ -6,7 +6,7 @@
  * @package  AjaxSearch
  *
  * @author       Coroico - www.evo.wangba.fr
- * @version      1.12.0
+ * @version      1.12.1
  * @date         27/10/2018
  *
  * Purpose:

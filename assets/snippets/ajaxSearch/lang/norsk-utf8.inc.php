@@ -1,8 +1,8 @@
 <?php
 /*
-norsk.inc.php - for AjaxSearch 1.12.0
+norsk.inc.php - for AjaxSearch 1.12.1
 Created by: Bjørn Erik Sandbakk (Sylvaticus)
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = 'Søket ditt ga ingen resultat. Prøv på nytt med en litt annen formulering.';

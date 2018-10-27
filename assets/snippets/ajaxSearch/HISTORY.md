@@ -1,5 +1,5 @@
 #Changelog:
-27-oct-18 (1.12.0)
+27-oct-18 (1.12.1)
 - Some refactor
 - Security Fix
 

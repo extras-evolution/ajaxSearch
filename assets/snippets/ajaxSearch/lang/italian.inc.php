@@ -1,8 +1,8 @@
 <?php
 /*
-italian.inc.php - for AjaxSearch 1.12.0
+italian.inc.php - for AjaxSearch 1.12.1
 Created by: Nicola Lambathakis (Banzai), Luigif
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = 'Non ci sono risultati per la ricerca. Prova con un termine pi&ugrave; generico.';

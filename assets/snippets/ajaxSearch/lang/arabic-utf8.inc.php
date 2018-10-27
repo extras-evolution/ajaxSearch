@@ -1,8 +1,8 @@
 <?php
 /*
-arabic-utf8.inc.php - for AjaxSearch 1.12.0
+arabic-utf8.inc.php - for AjaxSearch 1.12.1
 Created by: Robin North (www.phenotype.net)
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = 'ليس هناك أي نتائج للبحث. يرجي المحاولة باستخدام مصطلحات عامة أكثر من أجل الحصول على نتائج أكثر.';

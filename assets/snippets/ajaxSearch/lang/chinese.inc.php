@@ -1,8 +1,8 @@
 <?php
 /*
-chinese.inc.php - for AjaxSearch 1.12.0
+chinese.inc.php - for AjaxSearch 1.12.1
 Created by: KyleJ (kjaebker@muddydogpaws.com)
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = '没有搜索到相关的内容，请尝试输另外的关键词';

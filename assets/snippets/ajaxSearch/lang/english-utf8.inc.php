@@ -1,8 +1,8 @@
 <?php
 /*
-english-utf8.inc.php - for AjaxSearch 1.12.0
+english-utf8.inc.php - for AjaxSearch 1.12.1
 Created by: KyleJ (kjaebker@muddydogpaws.com), Modified by Coroico
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = 'There were no search results. Please try using more general terms to get more results.';

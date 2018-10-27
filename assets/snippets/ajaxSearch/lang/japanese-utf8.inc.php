@@ -1,8 +1,8 @@
 <?php
 /*
-japanese-utf8.inc.php - for AjaxSearch 1.12.0
+japanese-utf8.inc.php - for AjaxSearch 1.12.1
 Created by: KyleJ (kjaebker@muddydogpaws.com), Modified by Coroico
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = '指定キーワードを含むページが見つかりません。';

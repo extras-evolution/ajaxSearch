@@ -1,8 +1,8 @@
 <?php
 /*
-indonesia.inc.php - for AjaxSearch 1.12.0
+indonesia.inc.php - for AjaxSearch 1.12.1
 Created by: goldsky
-Last Modified on 2014-12-09
+Last Modified on 2018-10-27
 Description: Language strings for AjaxSearch
 */
 $_lang['as_resultsIntroFailure'] = 'Tidak ada hasil. Silahkan coba menggunakan kata-kata yang lebih umum.';
