@@ -101,8 +101,8 @@ class AjaxSearchRequest
                 $this->asUtil->dbgRecord("End of select");
             }
             $results = $this->_appendTvs($records);
+            $modx->db->freeResult($records);
         }
-        $modx->db->freeResult($records);
         return $results;
     }
 
