@@ -65,7 +65,7 @@ class AjaxSearchInput
         $msgErr = '';
         $this->_checkParams();
         $valid = $this->_validSearchString($msgErr);
-        $this->_displayInputForm($msgErr);
+        $this->_displayInputForm();
         $this->_setClearDefaultHeader();
 
         return $valid;
@@ -193,7 +193,7 @@ class AjaxSearchInput
         if ($checkString) {
             $words_array = explode(' ', preg_replace('/\s\s+/', ' ', trim($searchString)));
             $mbStrlen = $this->asCfg->cfg['mbstring'] ? 'mb_strlen' : 'strlen';
-            if (($this->asCfg->dbCharset == 'utf8') && ($this->asCfg->cfg['mbstring'])) {
+            if ($this->asCfg->dbCharset == 'utf8' && $this->asCfg->cfg['mbstring']) {
                 mb_internal_encoding("UTF-8");
             }
 
@@ -285,10 +285,9 @@ class AjaxSearchInput
 
     /**
      * Display the input form
-     *
-     * @param $msgErr
      */
-    public function _displayInputForm($msgErr) {
+    public function _displayInputForm()
+    {
         global $modx;
         $varInputForm = array();
         if ($this->asCfg->cfg['showInputForm']) {
@@ -299,7 +298,10 @@ class AjaxSearchInput
             $tplInputForm = $this->asCfg->cfg['tplInput'];
             $chkInputForm = new AsPhxParser($tplInputForm);
             if ($this->dbgTpl) {
-                $this->asUtil->dbgRecord($chkInputForm->getTemplate($tplInputForm), "tplInputForm template" . $tplInputForm);
+                $this->asUtil->dbgRecord(
+                    $chkInputForm->getTemplate($tplInputForm),
+                    "tplInputForm template" . $tplInputForm
+                );
             }
 
             if (isset($this->asCfg->cfg['landingPage']) && !is_bool($this->asCfg->cfg['landingPage'])) {
@@ -324,7 +326,6 @@ class AjaxSearchInput
             //if (($this->asCtrl->searchString == 'init')) $this->asCtrl->setSearchString('');
             if ($this->dbg) $this->asUtil->dbgRecord($this->asCtrl->searchString, "displayInputForm - searchString");
 
-
             // Submit button
             if ($this->asCfg->cfg['liveSearch']) {
                 $varInputForm['liveSearch'] = 1;
@@ -337,24 +338,35 @@ class AjaxSearchInput
 
             $varInputForm['advSearch'] = $this->asCtrl->advSearch;
 
-            $varInputForm['radioId'] = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . '_ajaxSearch_radio' : 'ajaxSearch_radio';
-            $varInputForm['onewordId'] = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . '_radio_oneword' : 'radio_oneword';
+            if ($this->asCfg->cfg['asId']) {
+                $varInputForm['radioId'] = $this->asCfg->cfg['asId'] . '_ajaxSearch_radio';
+                $varInputForm['onewordId'] = $this->asCfg->cfg['asId'] . '_radio_oneword';
+                $varInputForm['allwordsId'] = $this->asCfg->cfg['asId'] . '_radio_allwords';
+                $varInputForm['exactphraseId'] = $this->asCfg->cfg['asId'] . '_radio_exactphrase';
+                $varInputForm['nowordsId'] = $this->asCfg->cfg['asId'] . '_radio_nowords';
+            } else {
+                $varInputForm['radioId'] = 'ajaxSearch_radio';
+                $varInputForm['onewordId'] = 'radio_oneword';
+                $varInputForm['allwordsId'] = 'radio_allwords';
+                $varInputForm['exactphraseId'] = 'radio_exactphrase';
+                $varInputForm['nowordsId'] = 'radio_nowords';
+            }
+
             $varInputForm['oneword'] = ONEWORD;
             $varInputForm['onewordText'] = $this->asCfg->lang[ONEWORD];
             $varInputForm['onewordChecked'] = ($this->asCtrl->advSearch == ONEWORD ? 'checked ="checked"' : '');
-            $varInputForm['allwordsId'] = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . '_radio_allwords' : 'radio_allwords';
+
             $varInputForm['allwords'] = ALLWORDS;
             $varInputForm['allwordsText'] = $this->asCfg->lang[ALLWORDS];
             $varInputForm['allwordsChecked'] = ($this->asCtrl->advSearch == ALLWORDS ? 'checked ="checked"' : '');
-            $varInputForm['exactphraseId'] = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . '_radio_exactphrase' : 'radio_exactphrase';
+
             $varInputForm['exactphrase'] = EXACTPHRASE;
             $varInputForm['exactphraseText'] = $this->asCfg->lang[EXACTPHRASE];
             $varInputForm['exactphraseChecked'] = ($this->asCtrl->advSearch == EXACTPHRASE ? 'checked ="checked"' : '');
-            $varInputForm['nowordsId'] = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . '_radio_nowords' : 'radio_nowords';
+
             $varInputForm['nowords'] = NOWORDS;
             $varInputForm['nowordsText'] = $this->asCfg->lang[NOWORDS];
             $varInputForm['nowordsChecked'] = ($this->asCtrl->advSearch == NOWORDS ? 'checked ="checked"' : '');
-
 
             if (!$this->asCtrl->searchString) {
                 if ($this->asCfg->cfg['showIntro']) {
@@ -364,7 +376,6 @@ class AjaxSearchInput
                     $varInputForm['showIntro'] = 0;
                 }
             }
-
 
             if ($this->asCfg->cfg['asId']) {
                 $varInputForm['showAsId'] = '1';
@@ -381,10 +392,14 @@ class AjaxSearchInput
                 $tplAsfForm = $this->asCfg->cfg['tplAsf'];
                 $chkAsfForm = new AsPhxParser($tplAsfForm);
                 if ($this->dbgTpl) {
-                    $this->asUtil->dbgRecord($chkAsfForm->getTemplate($tplAsfForm), "tplAsfForm template" . $tplAsfForm);
+                    $this->asUtil->dbgRecord(
+                        $chkAsfForm->getTemplate($tplAsfForm),
+                        'tplAsfForm template' . $tplAsfForm
+                    );
                 }
-                $varAsfForm = array();
-                $varAsfForm['asfId'] = ($this->asCfg->cfg['asId'] != '') ? $this->asCfg->cfg['asId'] . '_asf_form' : 'asf_form';
+                $varAsfForm = array(
+                    'asfId' => $this->asCfg->cfg['asId'] != '' ? $this->asCfg->cfg['asId'] . '_asf_form' : 'asf_form'
+                );
                 $chkAsfForm->AddVar("as", $varAsfForm);
                 $this->asfForm = $chkAsfForm->Render() . "\n";
             }
@@ -440,7 +455,7 @@ class AjaxSearchInput
      */
     public function _stripJscripts($text)
     {
-        $text = preg_replace("'<script[^>]*>.*?</script>'si", "", $text);
+        $text = preg_replace("'<script[^>]*>.*?</script>'si", '', $text);
         $text = preg_replace('/{.+?}/', '', $text);
         return $text;
     }

@@ -18,49 +18,67 @@ if (! defined('GROUP_CONCAT_LENGTH')) {
     define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
 }
 
-class AjaxSearchResults {
+class AjaxSearchResults
+{
+    /**
+     * @var AjaxSearchConfig
+     */
+    public $asCfg;
+    /**
+     * @var AjaxSearchCtrl
+     */
+    public $asCtrl;
+    /**
+     * @var AjaxSearchOutput
+     */
+    public $asOutput;
+    /**
+     * @var AjaxSearchUtil
+     */
+    public $asUtil;
+    /**
+     * @var AjaxSearchLog
+     */
+    public $asLog;
 
-    // public variables
-    var $asCfg = null;
-    var $asCtrl = null;
-    var $asOutput = null;
-    var $asUtil = null;
-    var $asLog = null;
+    public $dbg = false;
+    public $dbgRes = false;
+    public $log;
 
-    var $dbg = false;
-    var $dbgRes = false;
-    var $log;
+    public $groupResults = array();
+    public $extractNb;
+    public $withExtract;
+    public $nbGroups;
 
-    var $groupResults = array();
-    var $extractNb;
-    var $withExtract;
+    public $nbResults;
 
-    // private variables
-    var $_siteList;
-    var $_subsiteList;
+    private $_siteList;
+    private $_subsiteList;
 
-    var $_groupMixedResults = array();
-    var $_extractFields = array();
-    var $_asRequest;
+    private $_groupMixedResults = array();
+    private $_extractFields = array();
+    public $_asRequest;
 
-    var $_array_key, $_filtertype, $_filterValue;
+    private $_array_key;
+    private $_filtertype;
+    private $_filterValue;
 
-    var $_idType;
-    var $_pardoc;
-    var $_depth;
+    private $_idType;
+    private $_pardoc;
+    private $_depth;
 
-    /*
-    *  Initializes the class into the proper context
-    *
-    *  @access public
-    *  @param AjaxSearchConfig &$asCfg configuration context
-    *  @param AjaxSearchCtrl &$asCtrl controler instance
-    *  @param AjaxSearchOutput &$asOutput ouput instance
-    *  @param AjaxSearchUtil &$asUtil debug instance
-    *  @param boolean $dbg debug flag
-    *  @param boolean $dbgRes debug flag for results
-    */
-    function init(&$asCfg, &$asCtrl, &$asOutput, &$asUtil){
+    /**
+     *  Initializes the class into the proper context
+     *
+     *  @param AjaxSearchConfig &$asCfg configuration context
+     *  @param AjaxSearchCtrl &$asCtrl controler instance
+     *  @param AjaxSearchOutput &$asOutput ouput instance
+     *  @param AjaxSearchUtil &$asUtil debug instance
+     *  @param boolean $dbg debug flag
+     *  @param boolean $dbgRes debug flag for results
+     */
+    public function init(&$asCfg, &$asCtrl, &$asOutput, &$asUtil)
+    {
         $this->asCfg =& $asCfg;
         $this->asCtrl =& $asCtrl;
         $this->asOutput =& $asOutput;
@@ -68,31 +86,46 @@ class AjaxSearchResults {
         $this->dbg = $asUtil->dbg;
         $this->dbgRes = $asUtil->dbgRes;
     }
-    /*
-    *  Get search results
-    *
-    *  @access public
-    *  @param string &$msgErr message error
-    *  @return boolean true if ok
-    */
-    function getSearchResults(&$msgErr) {
+
+    /**
+     *  Get search results
+     *
+     *  @param string &$msgErr message error
+     *  @return boolean
+     */
+    public function getSearchResults(&$msgErr)
+    {
         global $modx;
         $results = array();
         include_once AS_PATH . "classes/ajaxSearchRequest.class.inc.php";
         if (class_exists('AjaxSearchRequest')) {
-            $this->_asRequest = new AjaxSearchRequest($this->asUtil,$this->asCfg->pgCharset);
+            $this->_asRequest = new AjaxSearchRequest($this->asUtil, $this->asCfg->pgCharset);
         }
-        if (!$this->_getSiteList($msgErr)) return false;
+        if (!$this->_getSiteList()) {
+            return false;
+        }
         foreach ($this->_siteList as $site) {
-            if (!$this->_getSubsiteList($site,$msgErr)) return false;
+            if (!$this->_getSubsiteList()) {
+                return false;
+            }
             foreach ($this->_subsiteList as $subsite) {
-                if (!$this->_getSubsiteParams($site, $subsite,$msgErr)) return false;
-                if (!$this->_checkParams($msgErr)) return false;
+                if (!$this->_getSubsiteParams($site, $subsite,$msgErr)) {
+                    return false;
+                }
+                if (!$this->_checkParams($msgErr)) {
+                    return false;
+                }
                 $this->asCfg->saveConfig($site, $subsite);
                 if ($this->asCfg->cfg['showResults']) {
                     $this->asOutput->initClassVariables();
                     $bsf = $this->_doBeforeSearchFilter();
-                    $results = $this->_asRequest->doSearch($this->asCtrl->searchString, $this->asCtrl->advSearch, $this->asCfg->cfg, $bsf, $this->asCtrl->fClause);
+                    $results = $this->_asRequest->doSearch(
+                        $this->asCtrl->searchString,
+                        $this->asCtrl->advSearch,
+                        $this->asCfg->cfg,
+                        $bsf,
+                        $this->asCtrl->fClause
+                    );
                     $results = $this->_doFilter($results, $this->asCtrl->searchString, $this->asCtrl->advSearch);
                     $this->_setSearchResults($site, $subsite, $results);
                 }
@@ -100,42 +133,66 @@ class AjaxSearchResults {
         }
         $this->asCfg->restoreConfig(DEFAULT_SITE, DEFAULT_SUBSITE);
         $this->_sortMixedResults();
-        if ($this->dbgRes) $this->asUtil->dbgRecord($this->asCfg->scfg, "AjaxSearch - scfg");
-        if ($this->dbgRes) $this->asUtil->dbgRecord($this->groupResults, "AjaxSearch - group results");
-        if ($this->dbgRes) $this->asUtil->dbgRecord($this->_groupMixedResults, "AjaxSearch - group mixed results");
+        if ($this->dbgRes) {
+            $this->asUtil->dbgRecord($this->asCfg->scfg, "AjaxSearch - scfg");
+            $this->asUtil->dbgRecord($this->groupResults, "AjaxSearch - group results");
+            $this->asUtil->dbgRecord($this->_groupMixedResults, "AjaxSearch - group mixed results");
+        }
 
         return true;
     }
-    /*
-    *  Get the list of sites from snippet call
-    */
-    function _getSiteList(&$msgErr) {
+
+    /**
+     * Get the list of sites from snippet call
+     * @return bool
+     */
+    public function _getSiteList()
+    {
         $siteList = array();
         if ($this->asCtrl->forThisAs) {
-            if ($this->asCfg->cfg['sites']) $siteList = explode(',', $this->asCfg->cfg['sites']);
-            else $siteList[0] = DEFAULT_SITE;
+            if ($this->asCfg->cfg['sites']) {
+                $siteList = explode(',', $this->asCfg->cfg['sites']);
+            } else {
+                $siteList[0] = DEFAULT_SITE;
+            }
         }
-        if ($this->dbgRes) $this->asUtil->dbgRecord($siteList, "getSiteList - siteList");
+        if ($this->dbgRes) {
+            $this->asUtil->dbgRecord($siteList, "getSiteList - siteList");
+        }
         $this->_siteList = $siteList;
         return true;
     }
-    /*
-    *  Get the list of subsites from subsearch parameter
-    */
-    function _getSubsiteList($site, &$msgErr) {
+
+    /**
+     * Get the list of subsites from subsearch parameter
+     * @return bool
+     */
+    public function _getSubsiteList()
+    {
         $subsiteList = array();
         if ($this->asCtrl->forThisAs) {
-            if ($this->asCtrl->subSearch) $subsiteList = explode(',', $this->asCtrl->subSearch);
-            else $subsiteList[0] = DEFAULT_SUBSITE;
+            if ($this->asCtrl->subSearch) {
+                $subsiteList = explode(',', $this->asCtrl->subSearch);
+            } else {
+                $subsiteList[0] = DEFAULT_SUBSITE;
+            }
         }
-        if ($this->dbgRes) $this->asUtil->dbgRecord($subsiteList, "getSubsiteList - subsiteList");
+        if ($this->dbgRes) {
+            $this->asUtil->dbgRecord($subsiteList, "getSubsiteList - subsiteList");
+        }
         $this->_subsiteList = $subsiteList;
         return true;
     }
-    /*
-    *  Get the parameters for each subsite
-    */
-    function _getSubsiteParams($site, $subsite, &$msgErr) {
+
+    /**
+     * Get the parameters for each subsite
+     *
+     * @param $site
+     * @param $subsite
+     * @param $msgErr
+     * @return bool
+     */
+    public function _getSubsiteParams($site, $subsite, &$msgErr) {
         $msgErr = '';
         $sitecfg = array();
         $subsitecfg = array();
@@ -172,28 +229,46 @@ class AjaxSearchResults {
         $this->asCfg->cfg = array_merge($this->asCfg->bcfg, (array)$sitecfg, (array)$subsitecfg);
         return true;
     }
-    /*
-    * Check or not search params
-    */
-    function _checkParams(&$msgErr) {
+
+    /**
+     * Check or not search params
+     *
+     * @param $msgErr
+     * @return bool
+     */
+    public function _checkParams(&$msgErr) {
         global $modx;
 
         $msgErr = '';
         if ($this->asCtrl->forThisAs) {
             if (isset($this->asCfg->cfg['extractLength'])) {
-                if ($this->asCfg->cfg['extractLength'] == 0) $this->asCfg->cfg['extract'] = 0;
-                if ($this->asCfg->cfg['extractLength'] < EXTRACT_MIN) $this->asCfg->cfg['extractLength'] = EXTRACT_MIN;
-                if ($this->asCfg->cfg['extractLength'] > EXTRACT_MAX) $this->asCfg->cfg['extractLength'] = EXTRACT_MAX;
+                if ($this->asCfg->cfg['extractLength'] == 0) {
+                    $this->asCfg->cfg['extract'] = 0;
+                }
+                if ($this->asCfg->cfg['extractLength'] < EXTRACT_MIN) {
+                    $this->asCfg->cfg['extractLength'] = EXTRACT_MIN;
+                }
+                if ($this->asCfg->cfg['extractLength'] > EXTRACT_MAX) {
+                    $this->asCfg->cfg['extractLength'] = EXTRACT_MAX;
+                }
             }
             if (isset($this->asCfg->cfg['extract'])) {
                 $extr = explode(':', $this->asCfg->cfg['extract'] . ':');
-                if ($extr[0] == '' || !is_numeric($extr[0])) $extr[0] = 0;
-                if ($extr[1] == '' || is_numeric($extr[1])) $extr[1] = 'content';
+                if ($extr[0] == '' || !is_numeric($extr[0])) {
+                    $extr[0] = 0;
+                }
+                if ($extr[1] == '' || is_numeric($extr[1])) {
+                    $extr[1] = 'content';
+                }
                 $this->asCfg->cfg['extract'] = $extr[0] . ":" . $extr[1];
             }
             if (isset($this->asCfg->cfg['opacity'])) {
-                if ($this->asCfg->cfg['opacity'] < 0.) $this->asCfg->cfg['opacity'] = 0.;
-                if ($this->asCfg->cfg['opacity'] > 1.) $this->asCfg->cfg['opacity'] = 1.;
+                if ($this->asCfg->cfg['opacity'] < 0.) {
+                    $this->asCfg->cfg['opacity'] = 0.;
+                }
+                if ($this->asCfg->cfg['opacity'] > 1.) {
+                    $this->asCfg->cfg['opacity'] = 1.;
+                }
             }
 
             // check that the tables where to do the search exist
@@ -202,43 +277,47 @@ class AjaxSearchResults {
                 foreach ($tables_array as $table) {
                     $fields_array = explode(':', $table);
                     $tbcode = $fields_array[0];
-                    if (($tbcode != 'content') && ($tbcode != 'tv') && ($tbcode != 'jot') && ($tbcode != 'maxigallery') && !function_exists($tbcode)) {
-                        $msgErr = "<br /><h3>AjaxSearch error: table $tbcode not defined in the configuration file: " . $this->asCfg->cfg['config'] . " !</h3><br />";
+                    if ($tbcode != 'content' && $tbcode != 'tv' && $tbcode != 'jot' && $tbcode != 'maxigallery' && !function_exists($tbcode)) {
+                        $msgErr = '<br />' .
+                            '<h3>' .
+                            'AjaxSearch error: table $tbcode not defined in the configuration file: ' . $this->asCfg->cfg['config'] . '!' .
+                            '</h3>' .
+                            '<br />';
                         return false;
                     }
                 }
             }
 
             // check the list of tvs enabled with "withTvs"
-            if ((isset($this->asCfg->cfg['withTvs'])) &&  ($this->asCfg->cfg['withTvs'])){
+            if (isset($this->asCfg->cfg['withTvs']) && $this->asCfg->cfg['withTvs']) {
                 $tv_array = explode(':', $this->asCfg->cfg['withTvs']);
                 $tvSign = $tv_array[0];
-                if (($tvSign != '+') && ($tvSign != '-')) {
+                if ($tvSign != '+' && $tvSign != '-') {
                     $tvList = $tvSign;
                     $tvSign = '+';
+                } else {
+                    $tvList = isset($tv_array[1]) ? $tv_array[1] : '';
                 }
-                else {
-                    if (isset($tv_array[1])) $tvList = $tv_array[1];
-                    else $tvList = '';
+                if (!$this->_validListTvs($tvList, $msgErr)) {
+                    return false;
                 }
-                if (!$this->_validListTvs($tvList, $msgErr)) return False;
                 $this->asCfg->cfg['withTvs'] = ($tvList) ? $tvSign . ':' . $tvList : $tvSign;
             }
 
             // check the list of tvs enabled with "phxTvs" - filter the tv already enabled by withTvs
-            if (isset($this->asCfg->cfg['withTvs']) && isset($this->asCfg->cfg['phxTvs'])){
+            if (isset($this->asCfg->cfg['withTvs'], $this->asCfg->cfg['phxTvs'])) {
                 unset($tv_array);
                 $tv_array = explode(':', $this->asCfg->cfg['phxTvs']);
                 $tvSign = $tv_array[0];
-                if (($tvSign != '+') && ($tvSign != '-')) {
+                if ($tvSign != '+' && $tvSign != '-') {
                     $tvList = $tvSign;
                     $tvSign = '+';
+                } else {
+                    $tvList = isset($tv_array[1]) ? $tv_array[1] : '';
                 }
-                else {
-                    if (isset($tv_array[1])) $tvList = $tv_array[1];
-                    else $tvList = '';
+                if (!$this->_validListTvs($tvList, $msgErr)) {
+                    return false;
                 }
-                if (!$this->_validListTvs($tvList, $msgErr)) return False;
                 $this->asCfg->cfg['phxTvs'] = ($tvList) ? $tvSign . ':' . $tvList : $tvSign;
             }
 
@@ -255,72 +334,82 @@ class AjaxSearchResults {
             $this->_depth = $this->asCfg->cfg['depth'];
 
             $this->asCfg->cfg['docgrp'] = '';
-            if ($docgrp = $modx->getUserDocGroups()) $this->asCfg->cfg['docgrp'] = implode(",", $docgrp);
-
-            if (isset($this->asCfg->cfg['filter'])) {
+            if ($docgrp = $modx->getUserDocGroups()) {
+                $this->asCfg->cfg['docgrp'] = implode(",", $docgrp);
             }
-
         } else {
             $this->asCfg->cfg['showResults'] = false;
         }
         return true;
     }
-    /*
-    *  Set up search results
-    */
-    function _setSearchResults($site, $subsite, $rs) {
+
+    /**
+     * Set up search results
+     *
+     * @param $site
+     * @param $subsite
+     * @param $rs
+     * @return bool
+     */
+    public function _setSearchResults($site, $subsite, $rs) {
         global $modx;
         $nbrs = count($rs);
-        if (!$nbrs) return false;
+        if (!$nbrs) {
+            return false;
+        }
         $categConfigFunction = CATEG_CONFIG;
         $this->_initExtractVariables();
         $display = $this->asCfg->cfg['display'];
         $select = $this->_asRequest->asSelect;
         $this->nbResults = 0;
         $grpresults = array();
-
-        if (($display == MIXED)) {
+        if ($display == MIXED) {
             $this->asCfg->chooseConfig(DEFAULT_SITE, DEFAULT_SUBSITE, $display);
             if (!isset($this->_groupMixedResults['length'])) {
                 $this->_groupMixedResults = $this->_setHeaderGroupResults(MIXED_SITES, $subsite, $display, 'N/A', $select, $nbrs);
-            } else $this->_groupMixedResults['length']+= $nbrs;
+            } else {
+                $this->_groupMixedResults['length']+= $nbrs;
+            }
 
             $order_array = explode(',', $this->asCfg->cfg['order']);
             $order = $order_array[0];
-            for($i=0;$i<$nbrs;$i++){
+            for ($i=0; $i<$nbrs; $i++){
                 $rs[$i]['order'] = $rs[$i][$order];
                 $this->_groupMixedResults['results'][] = $rs[$i];
             }
-            if ($this->dbgRes) $this->asUtil->dbgRecord($this->_groupMixedResults, "AjaxSearch - group mixed results");
-
-        }
-        else {
-
+            if ($this->dbgRes) {
+                $this->asUtil->dbgRecord($this->_groupMixedResults, "AjaxSearch - group mixed results");
+            }
+        } else {
             if ($this->asCfg->cfg['category']) {
-
-
                 $categ = '---';
                 $cfunc = function_exists($categConfigFunction);
                 $ic = 0;
-                for ($i = 0;$i < $nbrs;$i++) {
+                for ($i = 0; $i < $nbrs; $i++) {
                     $newCateg = trim($rs[$i]['category']);
                     if ($newCateg != $categ) {
                         $display = UNMIXED;
                         $cfg = NULL;
-                        if ($cfunc){
+                        if ($cfunc) {
                             $cfg = $categConfigFunction($site,$newCateg);
-                            if (isset($cfg['display'])) $display = $cfg['display'];
+                            if (isset($cfg['display'])) {
+                                $display = $cfg['display'];
+                            }
                         }
-                        if ($ic>0) $ctg[$ic-1]['end'] = $i-1;
+                        if ($ic>0) {
+                            $ctg[$ic-1]['end'] = $i-1;
+                        }
                         $ctg[] = array('categ' => $newCateg, 'start' => $i, 'end' => 0, 'display' => $display, 'cfg' => $cfg);
                         $ic++;
                     }
                     $categ = $newCateg;
                 }
 
-                if ($ic>0) $ctg[$ic-1]['end'] = $i-1;
-                $nbc = count($ctg);
+                if ($ic>0) {
+                    $ctg[$ic-1]['end'] = $i-1;
+                }
 
+                $nbc = count($ctg);
                 $ig0 = count($this->groupResults);
 
                 for ($i = 0;$i < $nbc;$i++) {
@@ -344,50 +433,62 @@ class AjaxSearchResults {
 
                         if ($this->dbgRes) $this->asUtil->dbgRecord($this->groupResults[$ig], "AjaxSearch - group results");
 
-                    }
-                    else {
+                    } else {
                         if (!isset($this->_groupMixedResults['length'])) {
                             $this->_groupMixedResults = $this->_setHeaderGroupResults(NO_NAME, $subsite, $display, 'N/A', 'N/A', $nbrsg);
-                        } else $this->_groupMixedResults['length']+= $nbrsg;
+                        } else {
+                            $this->_groupMixedResults['length']+= $nbrsg;
+                        }
                         $order_array = explode(',', $this->asCfg->cfg['order']);
                         $order = $order_array[0];
-                        for($j=0;$j<$nbrsg;$j++) {
+                        for($j=0; $j<$nbrsg; $j++) {
                             $grpresults[$j]['order'] = $grpresults[$j][$order];
                             $this->_groupMixedResults['results'][] = $rs[$j];
                         }
 
-                        if ($this->dbgRes) $this->asUtil->dbgRecord($this->groupResults, "AjaxSearch - group results");
+                        if ($this->dbgRes) {
+                            $this->asUtil->dbgRecord($this->groupResults, "AjaxSearch - group results");
+                        }
                     }
                 }
-            }
-            else {
+            } else {
                 $ig = count($this->groupResults);
                 $ucfg = $this->asCfg->setAsCall($this->asCfg->getUserConfig());
                 $this->groupResults[$ig] = $this->_setHeaderGroupResults($site, $subsite, $display, $ucfg, $select, $nbrs);
-                $row = array();
-                if ($this->dbgRes) $this->asUtil->dbgRecord($rs, "AjaxSearch - rs");
+                if ($this->dbgRes) {
+                    $this->asUtil->dbgRecord($rs, "AjaxSearch - rs");
+                }
                 $rs = $this->_sortResultsByRank($this->asCtrl->searchString, $this->asCtrl->advSearch, $rs, $nbrs);
                 $this->groupResults[$ig]['results'] = $rs;
                 $this->nbGroups = $ig + 1;
             }
             unset($ctg);
-            unset($rs);
         }
-        $this->nbResults+= $nbrs;
+        $this->nbResults += $nbrs;
     }
-    /*
-    *  Initialize the Extract variables
-    */
-    function _initExtractVariables() {
+
+    /**
+     * Initialize the Extract variables
+     */
+    public function _initExtractVariables() {
         list($nbExtr,$lstFlds) = explode(':', $this->asCfg->cfg['extract']);
         $this->extractNb = $nbExtr;
         $this->_extractFields = explode(',', $lstFlds);
         $this->withExtract+= $this->extractNb;
     }
-    /*
-    * Set the header of group of results
-    */
-    function _setHeaderGroupResults($site, $subsite, $display, $ucfg, $select, $length) {
+
+    /**
+     * Set the header of group of results
+     *
+     * @param $site
+     * @param $subsite
+     * @param $display
+     * @param $ucfg
+     * @param $select
+     * @param $length
+     * @return array
+     */
+    public function _setHeaderGroupResults($site, $subsite, $display, $ucfg, $select, $length) {
         $headerGroupResults = array();
         $headerGroupResults['site'] = $site;
         $headerGroupResults['subsite'] = $subsite;
@@ -399,10 +500,17 @@ class AjaxSearchResults {
         $headerGroupResults['found'] = '';
         return $headerGroupResults;
     }
-    /*
-    * Sort results by rank value
-    */
-    function _sortResultsByRank($searchString, $advSearch, $results, $nbrs) {
+
+    /**
+     * Sort results by rank value
+     *
+     * @param $searchString
+     * @param $advSearch
+     * @param $results
+     * @param $nbrs
+     * @return mixed
+     */
+    public function _sortResultsByRank($searchString, $advSearch, $results, $nbrs) {
         $rkFields = array();
         if ($this->asCfg->cfg['rank']) {
             $searchString = strtolower($searchString);
@@ -434,10 +542,17 @@ class AjaxSearchResults {
         }
         return $results;
     }
-    /*
-    * Get the rank value
-    */
-    function _getRank($searchString, $advSearch, $field, $weight) {
+
+    /**
+     * Get the rank value
+     *
+     * @param $searchString
+     * @param $advSearch
+     * @param $field
+     * @param $weight
+     * @return float|int
+     */
+    public function _getRank($searchString, $advSearch, $field, $weight) {
         $search = array();
         $rank = 0;
         if ($searchString && ($advSearch != NOWORDS)) {
@@ -461,10 +576,11 @@ class AjaxSearchResults {
         }
         return $rank;
     }
-    /*
-    * Sort noName results by order
-    */
-    function _sortMixedResults() {
+
+    /**
+     * Sort noName results by order
+     */
+    public function _sortMixedResults() {
         if (isset($this->_groupMixedResults['results'])) {
             foreach ($this->_groupMixedResults['results'] as $key => $row) {
                 $order[$key] = $row['order'];
@@ -475,10 +591,15 @@ class AjaxSearchResults {
             if ($this->dbgRes) $this->asUtil->dbgRecord($this->_groupMixedResults['results'], "AjaxSearch - sorted noName results");
         }
     }
-    /*
-    *  Check the validity of a value separated list of TVs name
-    */
-    function _validListTvs($listTvs, &$msgErr) {
+
+    /**
+     * Check the validity of a value separated list of TVs name
+     *
+     * @param $listTvs
+     * @param $msgErr
+     * @return bool
+     */
+    public function _validListTvs($listTvs, &$msgErr) {
         global $modx;
         if ($listTvs) {
             $tvs = explode(',', $listTvs);
@@ -493,10 +614,18 @@ class AjaxSearchResults {
         }
         return true;
     }
-    /*
-    * Returns extracts with highlighted searchterms
-    */
-    function _getExtract($text, $searchString, $advSearch, $highlightClass, &$nbExtr) {
+
+    /**
+     * Returns extracts with highlighted searchterms
+     *
+     * @param $text
+     * @param $searchString
+     * @param $advSearch
+     * @param $highlightClass
+     * @param $nbExtr
+     * @return string
+     */
+    public function _getExtract($text, $searchString, $advSearch, $highlightClass, &$nbExtr) {
         $finalExtract = '';
         if (($text !== '') && ($searchString !== '') && ($this->extractNb > 0) && ($advSearch !== NOWORDS)) {
             $extracts = array();
@@ -562,18 +691,23 @@ class AjaxSearchResults {
                 array_multisort($lft, SORT_ASC, $rght, SORT_ASC, $extracts);
 
                 for ($i = 0;$i < $nbExtr;$i++) {
-
                     $begin = $mbSubstr($text, 0, $extracts[$i]['left']);
-                    if ($begin != '') $extracts[$i]['left'] = (int)$mbStrrpos($begin, ' ');
+                    if ($begin != '') {
+                        $extracts[$i]['left'] = (int)$mbStrrpos($begin, ' ');
+                    }
 
                     $end = $mbSubstr($text, $extracts[$i]['right'] + 1, $textLength - $extracts[$i]['right']);
-                    if ($end != '') $dr = (int)$mbStrpos($end, ' ');
-                    if (is_int($dr)) $extracts[$i]['right']+= $dr + 1;
+                    if ($end != '') {
+                        $dr = (int)$mbStrpos($end, ' ');
+                    }
+                    if (is_int($dr)) {
+                        $extracts[$i]['right']+= $dr + 1;
+                    }
                 }
-
-                if ($extracts[0]['left'] == 0) $extracts[0]['etcLeft'] = '';
+                if ($extracts[0]['left'] == 0) {
+                    $extracts[0]['etcLeft'] = '';
+                }
                 for ($i = 1;$i < $nbExtr;$i++) {
-
                     if ($extracts[$i]['left'] < $extracts[$i - 1]['wordRight']) {
                         $extracts[$i - 1]['right'] = $extracts[$i - 1]['wordRight'];
                         $extracts[$i]['left'] = $extracts[$i - 1]['right'] + 1;
@@ -588,20 +722,21 @@ class AjaxSearchResults {
             for ($i = 0;$i < $nbExtr;$i++) {
                 $separation = ($extracts[$i]['etcRight'] != '') ? $this->asCfg->cfg['extractSeparator'] : '';
                 $extract = $mbSubstr($text, $extracts[$i]['left'], $extracts[$i]['right'] - $extracts[$i]['left'] + 1);
-
                 if ($this->asCfg->cfg['highlightResult']) {
                     $rank = $extracts[$i]['rank'];
                     $searchTerm = $searchList[$rank - 1];
-                    if ($advSearch == EXACTPHRASE) $pattern = '/(\b|\W)' . preg_quote($searchTerm, '/') . '(\b|\W)/' . $pcreModifier;
-                    else $pattern = '/' . preg_quote($searchTerm, '/') . '/' . $pcreModifier;
+                    if ($advSearch == EXACTPHRASE) {
+                        $pattern = '/(\b|\W)' . preg_quote($searchTerm, '/') . '(\b|\W)/' . $pcreModifier;
+                    } else {
+                        $pattern = '/' . preg_quote($searchTerm, '/') . '/' . $pcreModifier;
+                    }
                     $subject = '<span class="' . $highlightClass . ' ' . $highlightClass . $rank . '">\0</span>';
                     $extract = preg_replace($pattern, $subject, $extract);
                 }
                 $finalExtract.= $extracts[$i]['etcLeft'] . $extract . $extracts[$i]['etcRight'] . $separation;
             }
             $finalExtract = $mbSubstr($finalExtract, 0, $mbStrlen($finalExtract) - $mbStrlen($this->asCfg->cfg['extractSeparator']));
-        }
-        else if ((($text !== '') && ($searchString !== '') && ($this->extractNb > 0) && ($advSearch == NOWORDS)) ||
+        } else if ((($text !== '') && ($searchString !== '') && ($this->extractNb > 0) && ($advSearch == NOWORDS)) ||
             (($text !== '') && ($searchString == '') && ($this->extractNb > 0))) {
 
             if (($this->asCfg->dbCharset == 'utf8') && ($this->asCfg->cfg['mbstring'])) {
@@ -623,42 +758,47 @@ class AjaxSearchResults {
 
         return $finalExtract;
     }
-    /*
-    *  Get the extract result from each row
-    *
-    *  @access public
-    *  @param row $row mysql row
-    *  @return string extract
-    */
-    function getExtractRow($row) {
+
+    /**
+     * Get the extract result from each row
+     *
+     * @param array $row
+     * @return null|string|string[]
+     */
+    public function getExtractRow($row) {
         $text = '';
         $nbExtr = 0;
         if ($this->extractNb) {
-
-            foreach ($this->_extractFields as $f) if ($row[$f]) $text.= $row[$f] . ' ';
+            foreach ($this->_extractFields as $f) {
+                if ($row[$f]) {
+                    $text.= $row[$f] . ' ';
+                }
+            }
 
             $text = $this->cleanText($text, $this->asCfg->cfg['stripOutput']);
-
             $highlightClass = $this->asOutput->getHClass();
             $text = $this->_getExtract($text, $this->asCtrl->searchString, $this->asCtrl->advSearch, $highlightClass, $nbExtr);
         }
         return $text;
     }
-    /*
-    * Strip function to clean outputted results
-    */
-    function cleanText($text, $stripOutput) {
-        global $modx;
-        if (($stripOutput) && function_exists($stripOutput)) $text = $stripOutput($text);
-        else $text = $this->defaultStripOutput($text);
 
-        return $text;
+    /**
+     * Strip function to clean outputted results
+     *
+     * @param $text
+     * @param $stripOutput
+     * @return null|string|string[]
+     */
+    public function cleanText($text, $stripOutput) {
+        return ($stripOutput && function_exists($stripOutput)) ? $stripOutput($text) : $this->defaultStripOutput($text);
     }
-    /*
-    *  Return the sign and the list of Ids used for the search (parents & documents)
-    */
-    function _doBeforeSearchFilter() {
-        global $modx;
+
+    /**
+     * Return the sign and the list of Ids used for the search (parents & documents)
+     *
+     * @return array
+     */
+    public function _doBeforeSearchFilter() {
         $beforeFilter = array();
 
         list($fsign,$listIds) = explode(':',$this->_pardoc . ':');
@@ -667,7 +807,9 @@ class AjaxSearchResults {
             $fsign = 'in';
         }
         $beforeFilter['oper'] = ($fsign == 'in') ? 'in' : 'not in';
-        if ($listIds != '') $listIds = $this->_cleanIds($listIds);
+        if ($listIds != '') {
+            $listIds = $this->_cleanIds($listIds);
+        }
         if (strlen($listIds)) {
             switch ($this->_idType) {
                 case "parents":
@@ -681,11 +823,16 @@ class AjaxSearchResults {
         $beforeFilter['listIds'] = $listIds;
         return $beforeFilter;
     }
-    /*
-    *  Filter the search results
-    */
-    function _doFilter($results, $searchString, $advSearch) {
 
+    /**
+     * Filter the search results
+     *
+     * @param $results
+     * @param $searchString
+     * @param $advSearch
+     * @return array
+     */
+    public function _doFilter($results, $searchString, $advSearch) {
         $globalDelimiter = '|';
         $localDelimiter = ',';
 
@@ -735,10 +882,14 @@ class AjaxSearchResults {
         }
         return $results;
     }
-    /*
-    *  Do basic comparison filtering
-    */
-    function _basicFilter($value) {
+
+    /**
+     * Do basic comparison filtering
+     *
+     * @param $value
+     * @return int
+     */
+    public function _basicFilter($value) {
         $unset = 1;
         switch ($this->_filtertype) {
             case "!=":
@@ -800,10 +951,15 @@ class AjaxSearchResults {
         }
         return $unset;
     }
-    /*
-    *  Get the Ids ready to be processed
-    */
-    function _getChildIds($Ids, $depth) {
+
+    /**
+     * Get the Ids ready to be processed
+     *
+     * @param $Ids
+     * @param $depth
+     * @return array
+     */
+    public function _getChildIds($Ids, $depth) {
         global $modx;
         $depth = intval($depth);
         $kids = array();
@@ -815,10 +971,8 @@ class AjaxSearchResults {
                 }
             }
             return $kids;
-        } else if ($depth == 0) {
+        } elseif ($depth == 0) {
             $depth = 10000;
-
-
         }
         foreach ($modx->documentMap as $null => $document) {
             foreach ($document as $parent => $id) {
@@ -827,8 +981,8 @@ class AjaxSearchResults {
         }
         foreach ($Ids AS $seed) {
             if (!empty($kids[intval($seed) ])) {
-                $docIds = array_merge($docIds, $kids[intval($seed) ]);
-                unset($kids[intval($seed) ]);
+                $docIds = array_merge($docIds, $kids[intval($seed)]);
+                unset($kids[intval($seed)]);
             }
         }
         $depth--;
@@ -836,8 +990,8 @@ class AjaxSearchResults {
             $valid = $docIds;
             foreach ($docIds as $child => $id) {
                 if (!empty($kids[intval($id) ])) {
-                    $docIds = array_merge($docIds, $kids[intval($id) ]);
-                    unset($kids[intval($id) ]);
+                    $docIds = array_merge($docIds, $kids[intval($id)]);
+                    unset($kids[intval($id)]);
                 }
             }
             $depth--;
@@ -845,10 +999,14 @@ class AjaxSearchResults {
         }
         return array_unique($docIds);
     }
-    /*
-    *  Clean Ids list of unwanted characters
-    */
-    function _cleanIds($Ids) {
+
+    /**
+     * Clean Ids list of unwanted characters
+     *
+     * @param $Ids
+     * @return null|string|string[]
+     */
+    public function _cleanIds($Ids) {
 
         $pattern = array('`(,)+`',
             '`^(,)`',
@@ -858,10 +1016,16 @@ class AjaxSearchResults {
         $Ids = preg_replace($pattern, $replace, $Ids);
         return $Ids;
     }
-    /*
-    *  Filter the search results when the search terms are found inside HTML or MODX tags
-    */
-    function _doFilterTags($results, $searchString, $advSearch) {
+
+    /**
+     * Filter the search results when the search terms are found inside HTML or MODX tags
+     *
+     * @param $results
+     * @param $searchString
+     * @param $advSearch
+     * @return array
+     */
+    public function _doFilterTags($results, $searchString, $advSearch) {
         $filteredResults = array();
         $nbr = count($results);
         for($i=0;$i<$nbr;$i++) {
@@ -893,10 +1057,13 @@ class AjaxSearchResults {
         }
         return $filteredResults;
     }
-    /*
-    * Get the array of categories found
-    */
-    function getResultsCateg() {
+
+    /**
+     * Get the array of categories found
+     *
+     * @return array
+     */
+    public function getResultsCateg() {
         $resCategName = array();
         $resCategNb = array();
         for ($i = 0;$i < $this->nbGroups;$i++) {
@@ -905,10 +1072,13 @@ class AjaxSearchResults {
         }
         return array("name" => $resCategName, "nb" => $resCategNb);
     }
-    /*
-    * Get the array of tags found
-    */
-    function getResultsTag() {
+
+    /**
+     * Get the array of tags found
+     *
+     * @return array
+     */
+    public function getResultsTag() {
         $tags = array();
         $resResTag = array();
         $resTagName = array();
@@ -946,10 +1116,14 @@ class AjaxSearchResults {
         }
         return array("name" => $resTagName, "nb" => $resTagNb, "restag" => $resResTag);
     }
-    /*
-    * Default ouput strip function
-    */
-    function defaultStripOutput($text) {
+
+    /**
+     * Default ouput strip function
+     *
+     * @param $text
+     * @return null|string|string[]
+     */
+    public function defaultStripOutput($text) {
         global $modx;
 
         if ($text !== '') {
@@ -965,18 +1139,26 @@ class AjaxSearchResults {
         }
         return $text;
     }
-    /*
-    *  stripLineBreaking : replace line breaking tags with whitespace
-    */
-    function stripLineBreaking($text) {
+
+    /**
+     * replace line breaking tags with whitespace
+     *
+     * @param $text
+     * @return null|string|string[]
+     */
+    public function stripLineBreaking($text) {
 
         $text = preg_replace("'<(br[^/>]*?/|hr[^/>]*?/|/(div|h[1-6]|li|p|td))>'si", ' ', $text);
         return $text;
     }
-    /*
-    *  stripTags : Remove MODX sensitive tags
-    */
-    function stripTags($text) {
+
+    /**
+     * Remove MODX sensitive tags
+     *
+     * @param $text
+     * @return null|string|string[]
+     */
+    public function stripTags($text) {
 
         $modRegExArray[] = '~\[\[(.*?)\]\]~s';
         $modRegExArray[] = '~\[\!(.*?)\!\]~s';
@@ -989,334 +1171,72 @@ class AjaxSearchResults {
         foreach ($modRegExArray as $mReg) $text = preg_replace($mReg, '', $text);
         return $text;
     }
-    /*
-    *  stripJscript : Remove jscript
-    */
-    function stripJscripts($text) {
+
+    /**
+     * Remove jscript
+     *
+     * @param $text
+     * @return null|string|string[]
+     */
+    public function stripJscripts($text) {
 
         $text = preg_replace("'<script[^>]*>.*?</script>'si", "", $text);
         $text = preg_replace('/{.+?}/', '', $text);
         return $text;
     }
-    /*
-    *  stripHtml : Remove HTML sensitive tags
-    */
-    function stripHtml($text) {
+
+    /**
+     * Remove HTML sensitive tags
+     *
+     * @param $text
+     * @return string
+     */
+    public function stripHtml($text) {
         return strip_tags($text);
     }
-    /*
-    *  stripHtmlExceptImage : Remove HTML sensitive tags except image tag
-    */
-    function stripHtmlExceptImage($text) {
+
+    /**
+     * Remove HTML sensitive tags except image tag
+     *
+     * @param $text
+     * @return string
+     */
+    public function stripHtmlExceptImage($text) {
         $text = strip_tags($text, '<img>');
         return $text;
     }
-    function getSearchContext() {
+
+    /**
+     * @return mixed
+     */
+    public function getSearchContext() {
         // return the search context
         $searchContext['main'] = $this->_asRequest->scMain;
         $searchContext['joined'] = $this->_asRequest->scJoined;
         $searchContext['tvs'] = $this->_asRequest->scTvs;
         $searchContext['category'] = $this->_asRequest->scCategory;
         $searchContext['tags'] = $this->_asRequest->scTags;
+
         return $searchContext;
     }
-    function getWithContent() {
-        // return the withContent boolean value
-        return $this->_asRequest->withContent;
-    }
-    function _html_entity_decode($text, $quote_style = ENT_COMPAT, $charset) {
-
-        if (version_compare(PHP_VERSION, '5.0.0', '>=')) $text = html_entity_decode($text, ENT_QUOTES, $charset);
-        else $text = $this->_html_entity_decode_php4($text);
-        return $text;
-    }
-
-    // Author      : Nicola Asuni
-    // License     : GNU LGPL (http://www.gnu.org/copyleft/lesser.html)
-    //
-    // Description : This is a PHP4 function that redefine the
-    //               standard html_entity_decode function to support
-    //               UTF-8 encoding.
 
     /**
-     * Reverse function for htmlentities.
-     * Convert entities in UTF-8.
+     * return the withContent boolean value
+     *
+     * @return mixed
      */
-    function _html_entity_decode_php4($text_to_convert) {
-        $htmlentities_table = array (
-            "&Aacute;" => "".chr(195).chr(129)."",
-            "&aacute;" => "".chr(195).chr(161)."",
-            "&Acirc;" => "".chr(195).chr(130)."",
-            "&acirc;" => "".chr(195).chr(162)."",
-            "&acute;" => "".chr(194).chr(180)."",
-            "&AElig;" => "".chr(195).chr(134)."",
-            "&aelig;" => "".chr(195).chr(166)."",
-            "&Agrave;" => "".chr(195).chr(128)."",
-            "&agrave;" => "".chr(195).chr(160)."",
-            "&alefsym;" => "".chr(226).chr(132).chr(181)."",
-            "&Alpha;" => "".chr(206).chr(145)."",
-            "&alpha;" => "".chr(206).chr(177)."",
-            "&amp;" => "".chr(38)."",
-            "&and;" => "".chr(226).chr(136).chr(167)."",
-            "&ang;" => "".chr(226).chr(136).chr(160)."",
-            "&Aring;" => "".chr(195).chr(133)."",
-            "&aring;" => "".chr(195).chr(165)."",
-            "&asymp;" => "".chr(226).chr(137).chr(136)."",
-            "&Atilde;" => "".chr(195).chr(131)."",
-            "&atilde;" => "".chr(195).chr(163)."",
-            "&Auml;" => "".chr(195).chr(132)."",
-            "&auml;" => "".chr(195).chr(164)."",
-            "&bdquo;" => "".chr(226).chr(128).chr(158)."",
-            "&Beta;" => "".chr(206).chr(146)."",
-            "&beta;" => "".chr(206).chr(178)."",
-            "&brvbar;" => "".chr(194).chr(166)."",
-            "&bull;" => "".chr(226).chr(128).chr(162)."",
-            "&cap;" => "".chr(226).chr(136).chr(169)."",
-            "&Ccedil;" => "".chr(195).chr(135)."",
-            "&ccedil;" => "".chr(195).chr(167)."",
-            "&cedil;" => "".chr(194).chr(184)."",
-            "&cent;" => "".chr(194).chr(162)."",
-            "&Chi;" => "".chr(206).chr(167)."",
-            "&chi;" => "".chr(207).chr(135)."",
-            "&circ;" => "".chr(203).chr(134)."",
-            "&clubs;" => "".chr(226).chr(153).chr(163)."",
-            "&cong;" => "".chr(226).chr(137).chr(133)."",
-            "&copy;" => "".chr(194).chr(169)."",
-            "&crarr;" => "".chr(226).chr(134).chr(181)."",
-            "&cup;" => "".chr(226).chr(136).chr(170)."",
-            "&curren;" => "".chr(194).chr(164)."",
-            "&dagger;" => "".chr(226).chr(128).chr(160)."",
-            "&Dagger;" => "".chr(226).chr(128).chr(161)."",
-            "&darr;" => "".chr(226).chr(134).chr(147)."",
-            "&dArr;" => "".chr(226).chr(135).chr(147)."",
-            "&deg;" => "".chr(194).chr(176)."",
-            "&Delta;" => "".chr(206).chr(148)."",
-            "&delta;" => "".chr(206).chr(180)."",
-            "&diams;" => "".chr(226).chr(153).chr(166)."",
-            "&divide;" => "".chr(195).chr(183)."",
-            "&Eacute;" => "".chr(195).chr(137)."",
-            "&eacute;" => "".chr(195).chr(169)."",
-            "&Ecirc;" => "".chr(195).chr(138)."",
-            "&ecirc;" => "".chr(195).chr(170)."",
-            "&Egrave;" => "".chr(195).chr(136)."",
-            "&egrave;" => "".chr(195).chr(168)."",
-            "&empty;" => "".chr(226).chr(136).chr(133)."",
-            "&emsp;" => "".chr(226).chr(128).chr(131)."",
-            "&ensp;" => "".chr(226).chr(128).chr(130)."",
-            "&Epsilon;" => "".chr(206).chr(149)."",
-            "&epsilon;" => "".chr(206).chr(181)."",
-            "&equiv;" => "".chr(226).chr(137).chr(161)."",
-            "&Eta;" => "".chr(206).chr(151)."",
-            "&eta;" => "".chr(206).chr(183)."",
-            "&ETH;" => "".chr(195).chr(144)."",
-            "&eth;" => "".chr(195).chr(176)."",
-            "&Euml;" => "".chr(195).chr(139)."",
-            "&euml;" => "".chr(195).chr(171)."",
-            "&euro;" => "".chr(226).chr(130).chr(172)."",
-            "&exist;" => "".chr(226).chr(136).chr(131)."",
-            "&fnof;" => "".chr(198).chr(146)."",
-            "&forall;" => "".chr(226).chr(136).chr(128)."",
-            "&frac12;" => "".chr(194).chr(189)."",
-            "&frac14;" => "".chr(194).chr(188)."",
-            "&frac34;" => "".chr(194).chr(190)."",
-            "&frasl;" => "".chr(226).chr(129).chr(132)."",
-            "&Gamma;" => "".chr(206).chr(147)."",
-            "&gamma;" => "".chr(206).chr(179)."",
-            "&ge;" => "".chr(226).chr(137).chr(165)."",
-            "&harr;" => "".chr(226).chr(134).chr(148)."",
-            "&hArr;" => "".chr(226).chr(135).chr(148)."",
-            "&hearts;" => "".chr(226).chr(153).chr(165)."",
-            "&hellip;" => "".chr(226).chr(128).chr(166)."",
-            "&Iacute;" => "".chr(195).chr(141)."",
-            "&iacute;" => "".chr(195).chr(173)."",
-            "&Icirc;" => "".chr(195).chr(142)."",
-            "&icirc;" => "".chr(195).chr(174)."",
-            "&iexcl;" => "".chr(194).chr(161)."",
-            "&Igrave;" => "".chr(195).chr(140)."",
-            "&igrave;" => "".chr(195).chr(172)."",
-            "&image;" => "".chr(226).chr(132).chr(145)."",
-            "&infin;" => "".chr(226).chr(136).chr(158)."",
-            "&int;" => "".chr(226).chr(136).chr(171)."",
-            "&Iota;" => "".chr(206).chr(153)."",
-            "&iota;" => "".chr(206).chr(185)."",
-            "&iquest;" => "".chr(194).chr(191)."",
-            "&isin;" => "".chr(226).chr(136).chr(136)."",
-            "&Iuml;" => "".chr(195).chr(143)."",
-            "&iuml;" => "".chr(195).chr(175)."",
-            "&Kappa;" => "".chr(206).chr(154)."",
-            "&kappa;" => "".chr(206).chr(186)."",
-            "&Lambda;" => "".chr(206).chr(155)."",
-            "&lambda;" => "".chr(206).chr(187)."",
-            "&lang;" => "".chr(226).chr(140).chr(169)."",
-            "&laquo;" => "".chr(194).chr(171)."",
-            "&larr;" => "".chr(226).chr(134).chr(144)."",
-            "&lArr;" => "".chr(226).chr(135).chr(144)."",
-            "&lceil;" => "".chr(226).chr(140).chr(136)."",
-            "&ldquo;" => "".chr(226).chr(128).chr(156)."",
-            "&le;" => "".chr(226).chr(137).chr(164)."",
-            "&lfloor;" => "".chr(226).chr(140).chr(138)."",
-            "&lowast;" => "".chr(226).chr(136).chr(151)."",
-            "&loz;" => "".chr(226).chr(151).chr(138)."",
-            "&lrm;" => "".chr(226).chr(128).chr(142)."",
-            "&lsaquo;" => "".chr(226).chr(128).chr(185)."",
-            "&lsquo;" => "".chr(226).chr(128).chr(152)."",
-            "&macr;" => "".chr(194).chr(175)."",
-            "&mdash;" => "".chr(226).chr(128).chr(148)."",
-            "&micro;" => "".chr(194).chr(181)."",
-            "&middot;" => "".chr(194).chr(183)."",
-            "&minus;" => "".chr(226).chr(136).chr(146)."",
-            "&Mu;" => "".chr(206).chr(156)."",
-            "&mu;" => "".chr(206).chr(188)."",
-            "&nabla;" => "".chr(226).chr(136).chr(135)."",
-            "&nbsp;" => "".chr(194).chr(160)."",
-            "&ndash;" => "".chr(226).chr(128).chr(147)."",
-            "&ne;" => "".chr(226).chr(137).chr(160)."",
-            "&ni;" => "".chr(226).chr(136).chr(139)."",
-            "&not;" => "".chr(194).chr(172)."",
-            "&notin;" => "".chr(226).chr(136).chr(137)."",
-            "&nsub;" => "".chr(226).chr(138).chr(132)."",
-            "&Ntilde;" => "".chr(195).chr(145)."",
-            "&ntilde;" => "".chr(195).chr(177)."",
-            "&Nu;" => "".chr(206).chr(157)."",
-            "&nu;" => "".chr(206).chr(189)."",
-            "&Oacute;" => "".chr(195).chr(147)."",
-            "&oacute;" => "".chr(195).chr(179)."",
-            "&Ocirc;" => "".chr(195).chr(148)."",
-            "&ocirc;" => "".chr(195).chr(180)."",
-            "&OElig;" => "".chr(197).chr(146)."",
-            "&oelig;" => "".chr(197).chr(147)."",
-            "&Ograve;" => "".chr(195).chr(146)."",
-            "&ograve;" => "".chr(195).chr(178)."",
-            "&oline;" => "".chr(226).chr(128).chr(190)."",
-            "&Omega;" => "".chr(206).chr(169)."",
-            "&omega;" => "".chr(207).chr(137)."",
-            "&Omicron;" => "".chr(206).chr(159)."",
-            "&omicron;" => "".chr(206).chr(191)."",
-            "&oplus;" => "".chr(226).chr(138).chr(149)."",
-            "&or;" => "".chr(226).chr(136).chr(168)."",
-            "&ordf;" => "".chr(194).chr(170)."",
-            "&ordm;" => "".chr(194).chr(186)."",
-            "&Oslash;" => "".chr(195).chr(152)."",
-            "&oslash;" => "".chr(195).chr(184)."",
-            "&Otilde;" => "".chr(195).chr(149)."",
-            "&otilde;" => "".chr(195).chr(181)."",
-            "&otimes;" => "".chr(226).chr(138).chr(151)."",
-            "&Ouml;" => "".chr(195).chr(150)."",
-            "&ouml;" => "".chr(195).chr(182)."",
-            "&para;" => "".chr(194).chr(182)."",
-            "&part;" => "".chr(226).chr(136).chr(130)."",
-            "&permil;" => "".chr(226).chr(128).chr(176)."",
-            "&perp;" => "".chr(226).chr(138).chr(165)."",
-            "&Phi;" => "".chr(206).chr(166)."",
-            "&phi;" => "".chr(207).chr(134)."",
-            "&Pi;" => "".chr(206).chr(160)."",
-            "&pi;" => "".chr(207).chr(128)."",
-            "&piv;" => "".chr(207).chr(150)."",
-            "&plusmn;" => "".chr(194).chr(177)."",
-            "&pound;" => "".chr(194).chr(163)."",
-            "&prime;" => "".chr(226).chr(128).chr(178)."",
-            "&Prime;" => "".chr(226).chr(128).chr(179)."",
-            "&prod;" => "".chr(226).chr(136).chr(143)."",
-            "&prop;" => "".chr(226).chr(136).chr(157)."",
-            "&Psi;" => "".chr(206).chr(168)."",
-            "&psi;" => "".chr(207).chr(136)."",
-            "&radic;" => "".chr(226).chr(136).chr(154)."",
-            "&rang;" => "".chr(226).chr(140).chr(170)."",
-            "&raquo;" => "".chr(194).chr(187)."",
-            "&rarr;" => "".chr(226).chr(134).chr(146)."",
-            "&rArr;" => "".chr(226).chr(135).chr(146)."",
-            "&rceil;" => "".chr(226).chr(140).chr(137)."",
-            "&rdquo;" => "".chr(226).chr(128).chr(157)."",
-            "&real;" => "".chr(226).chr(132).chr(156)."",
-            "&reg;" => "".chr(194).chr(174)."",
-            "&rfloor;" => "".chr(226).chr(140).chr(139)."",
-            "&Rho;" => "".chr(206).chr(161)."",
-            "&rho;" => "".chr(207).chr(129)."",
-            "&rlm;" => "".chr(226).chr(128).chr(143)."",
-            "&rsaquo;" => "".chr(226).chr(128).chr(186)."",
-            "&rsquo;" => "".chr(226).chr(128).chr(153)."",
-            "&sbquo;" => "".chr(226).chr(128).chr(154)."",
-            "&Scaron;" => "".chr(197).chr(160)."",
-            "&scaron;" => "".chr(197).chr(161)."",
-            "&sdot;" => "".chr(226).chr(139).chr(133)."",
-            "&sect;" => "".chr(194).chr(167)."",
-            "&shy;" => "".chr(194).chr(173)."",
-            "&Sigma;" => "".chr(206).chr(163)."",
-            "&sigma;" => "".chr(207).chr(131)."",
-            "&sigmaf;" => "".chr(207).chr(130)."",
-            "&sim;" => "".chr(226).chr(136).chr(188)."",
-            "&spades;" => "".chr(226).chr(153).chr(160)."",
-            "&sub;" => "".chr(226).chr(138).chr(130)."",
-            "&sube;" => "".chr(226).chr(138).chr(134)."",
-            "&sum;" => "".chr(226).chr(136).chr(145)."",
-            "&sup1;" => "".chr(194).chr(185)."",
-            "&sup2;" => "".chr(194).chr(178)."",
-            "&sup3;" => "".chr(194).chr(179)."",
-            "&sup;" => "".chr(226).chr(138).chr(131)."",
-            "&supe;" => "".chr(226).chr(138).chr(135)."",
-            "&szlig;" => "".chr(195).chr(159)."",
-            "&Tau;" => "".chr(206).chr(164)."",
-            "&tau;" => "".chr(207).chr(132)."",
-            "&there4;" => "".chr(226).chr(136).chr(180)."",
-            "&Theta;" => "".chr(206).chr(152)."",
-            "&theta;" => "".chr(206).chr(184)."",
-            "&thetasym;" => "".chr(207).chr(145)."",
-            "&thinsp;" => "".chr(226).chr(128).chr(137)."",
-            "&THORN;" => "".chr(195).chr(158)."",
-            "&thorn;" => "".chr(195).chr(190)."",
-            "&tilde;" => "".chr(203).chr(156)."",
-            "&times;" => "".chr(195).chr(151)."",
-            "&trade;" => "".chr(226).chr(132).chr(162)."",
-            "&Uacute;" => "".chr(195).chr(154)."",
-            "&uacute;" => "".chr(195).chr(186)."",
-            "&uarr;" => "".chr(226).chr(134).chr(145)."",
-            "&uArr;" => "".chr(226).chr(135).chr(145)."",
-            "&Ucirc;" => "".chr(195).chr(155)."",
-            "&ucirc;" => "".chr(195).chr(187)."",
-            "&Ugrave;" => "".chr(195).chr(153)."",
-            "&ugrave;" => "".chr(195).chr(185)."",
-            "&uml;" => "".chr(194).chr(168)."",
-            "&upsih;" => "".chr(207).chr(146)."",
-            "&Upsilon;" => "".chr(206).chr(165)."",
-            "&upsilon;" => "".chr(207).chr(133)."",
-            "&Uuml;" => "".chr(195).chr(156)."",
-            "&uuml;" => "".chr(195).chr(188)."",
-            "&weierp;" => "".chr(226).chr(132).chr(152)."",
-            "&Xi;" => "".chr(206).chr(158)."",
-            "&xi;" => "".chr(206).chr(190)."",
-            "&Yacute;" => "".chr(195).chr(157)."",
-            "&yacute;" => "".chr(195).chr(189)."",
-            "&yen;" => "".chr(194).chr(165)."",
-            "&yuml;" => "".chr(195).chr(191)."",
-            "&Yuml;" => "".chr(197).chr(184)."",
-            "&Zeta;" => "".chr(206).chr(150)."",
-            "&zeta;" => "".chr(206).chr(182)."",
-            "&zwj;" => "".chr(226).chr(128).chr(141)."",
-            "&zwnj;" => "".chr(226).chr(128).chr(140)."",
-            "&gt;" => ">",
-            "&lt;" => "<"
-        );
-        $return_text = strtr($text_to_convert, $htmlentities_table);
-        $return_text = preg_replace('~&#x([0-9a-f]+);~ei', 'code_to_utf8(hexdec("\\1"))', $return_text);
-        $return_text = preg_replace('~&#([0-9]+);~e', 'code_to_utf8(\\1)', $return_text);
-        return $return_text;
+    public function getWithContent() {
+        return $this->_asRequest->withContent;
     }
-}
 
-/**
- * Returns the UTF-8 string corresponding to unicode value.
- * @param $num unicode value to convert.
- * @return string converted
- */
-function code_to_utf8($num) {
-    if ($num <= 0x7F) {
-        return chr($num);
-    } elseif ($num <= 0x7FF) {
-        return chr(($num >> 0x06) + 0xC0).chr(($num & 0x3F) + 128);
-    } elseif ($num <= 0xFFFF) {
-        return chr(($num >> 0x0C) + 0xE0).chr((($num >> 0x06) & 0x3F) + 0x80).chr(($num & 0x3F) + 0x80);
-    } elseif ($num <= 0x1FFFFF) {
-        return chr(($num >> 0x12) + 0xF0).chr((($num >> 0x0C) & 0x3F) + 0x80).chr((($num >> 0x06) & 0x3F) + 0x80).chr(($num & 0x3F) + 0x80);
+    /**
+     * @param $text
+     * @param int $quote_style
+     * @param $charset
+     * @return null|string|string[]
+     */
+    public function _html_entity_decode($text, $quote_style = ENT_COMPAT, $charset)
+    {
+        return html_entity_decode($text, $quote_style, $charset);
     }
-    return ' '; // default value
 }

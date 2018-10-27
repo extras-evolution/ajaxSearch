@@ -25,7 +25,6 @@ define('NB_MORE_RESULTS', 10);
 
 class AjaxSearchOutput
 {
-
     /** @var AjaxSearchConfig */
     public $asCfg;
     /** @var AjaxSearchCtrl */
@@ -43,11 +42,8 @@ class AjaxSearchOutput
     public $dbgTpl = false;
     public $dbgRes = false;
     public $log = false;
-
     public $output;
-
     public $asClass = array();
-
     public $chkResults;
     public $varResults = array();
     public $chkGrpResult;
@@ -72,7 +68,7 @@ class AjaxSearchOutput
      * @param $asLog
      * @param $log
      */
-    function init(&$asCfg, &$asCtrl, &$asInput, &$asResults, &$asUtil, &$asLog, $log)
+    public function init(&$asCfg, &$asCtrl, &$asInput, &$asResults, &$asUtil, &$asLog, $log)
     {
         // initialize the output instance
         $this->asCfg =& $asCfg;
@@ -98,6 +94,7 @@ class AjaxSearchOutput
     {
         global $modx;
 
+        $nbResultsInfos = null;
         $this->_checkParams();
         if ($this->asCfg->isAjax) {
             $jsonPairs = array();
@@ -110,13 +107,13 @@ class AjaxSearchOutput
             }
             $output = $this->_getJson($jsonPairs);
         } else {
-            $outputInputForm = $this->asInput->inputForm;   //
+            $outputInputForm = $this->asInput->inputForm;
             $outputAsfForm = $this->asInput->asfForm;
             if ($this->asCfg->cfg['ajaxSearch']) {
                 $outputResults = $this->_initDisplayResults();
             } else {
-                $outputResults = $this->_displayResults($validSearch, $msgErr,
-                    $nbResultsInfos); // non ajax results output
+                // non ajax results output
+                $outputResults = $this->_displayResults($validSearch, $msgErr, $nbResultsInfos);
                 $outputResults .= $this->_displayComment();
             }
             if (!$this->asCfg->cfg['output']) {
@@ -185,7 +182,6 @@ class AjaxSearchOutput
                     $this->_getSearchContext();
                     $nbDisplayedResults = 0;
                     for ($ig = 0; $ig < $this->asResults->nbGroups; $ig++) {
-
                         $found = '';
                         $site = $this->asResults->groupResults[$ig]['site'];
                         $subsite = $this->asResults->groupResults[$ig]['subsite'];
@@ -206,8 +202,16 @@ class AjaxSearchOutput
                         $this->asCfg->chooseConfig($site, $subsite, $display);
                         $this->_initDisplayVariables();
 
-                        $listGrpResults .= $this->_displayGrpResult($ig, $site, $subsite, $display, $nbrs,
-                            $searchResults, $offset, $nbMax);
+                        $listGrpResults .= $this->_displayGrpResult(
+                            $ig,
+                            $site,
+                            $subsite,
+                            $display,
+                            $nbrs,
+                            $searchResults,
+                            $offset,
+                            $nbMax
+                        );
 
                         $lid = $this->_setSuccessfullSearches($ig);
                         if ($lid) {
@@ -308,8 +312,15 @@ class AjaxSearchOutput
         $this->chkGrpResult = new AsPhxParser($this->tplGrpRes);
         $this->varGrpResult = array();
 
-        $this->varGrpResult['headerGrpResult'] = $this->_displayHeaderGrpResult($site, $subsite, $display, $nbrs,
-            $searchResults, $offset, $nbMax);
+        $this->varGrpResult['headerGrpResult'] = $this->_displayHeaderGrpResult(
+            $site,
+            $subsite,
+            $display,
+            $nbrs,
+            $searchResults,
+            $offset,
+            $nbMax
+        );
 
         $this->varGrpResult['grpResultsDef'] = 1;
         $prefix = ($this->asCfg->cfg['asId']) ? $this->asCfg->cfg['asId'] . "_" : '';
@@ -355,8 +366,12 @@ class AjaxSearchOutput
         $grpResultNb = $nbrs;
         $grpResultStart = $offset + 1;
         $grpResultEnd = ($offset + $nbMax > $nbrs) ? $nbrs : $offset + $nbMax;
-        $varHeader['grpResultsDisplayedText'] = sprintf($grpResultsDisplayedText, $grpResultStart, $grpResultEnd,
-            $grpResultNb);
+        $varHeader['grpResultsDisplayedText'] = sprintf(
+            $grpResultsDisplayedText,
+            $grpResultStart,
+            $grpResultEnd,
+            $grpResultNb
+        );
 
         $this->chkGrpResult->AddVar("as", $varHeader);
         $header = $this->chkGrpResult->Render();
@@ -384,18 +399,11 @@ class AjaxSearchOutput
 
         for ($i = 0; $i < $nb; $i++) {
             $this->varResult = array();
-
             $found[] = $this->_setResultDisplayed($searchResults[$i]);
-
             $this->_setResultLink($searchResults[$i]);
-
             $this->_setResultExtract($searchResults[$i]);
-
             $this->_setResultBreadcrumbs($searchResults[$i]);
-
             $this->_setResultNumber($offset + $i + 1);
-
-
             $this->chkResult->AddVar("as", $this->varResult);
             $listResults .= $this->chkResult->Render();
             unset($this->varResult);
@@ -425,8 +433,7 @@ class AjaxSearchOutput
             $maxOffset = ($numResultPages - 1) * $nbMax;
             $offset = ($offset > $maxOffset) ? $maxOffset : $offset;
             $offset = ($offset < 0) ? 0 : $offset;
-            if (($pagingType == 0) && (!$this->asCfg->isAjax)) {
-
+            if ($pagingType == 0 && !$this->asCfg->isAjax) {
                 $tplPaging = $this->asCfg->cfg['tplPaging0'];
                 if ($tplPaging == '') {
                     $tplPaging = "@FILE:" . AS_SPATH . 'templates/paging0.tpl.html';
@@ -471,8 +478,7 @@ class AjaxSearchOutput
                 unset($varPaging);
                 $chkPaging->CleanVars();
             } else {
-                if (($pagingType == 1) && (($nbrs >= $nbMax) || $showPagingAlways)) {
-
+                if ($pagingType == 1 && ($nbrs >= $nbMax || $showPagingAlways)) {
                     $tplPaging = $this->asCfg->cfg['tplPaging1'];
                     if ($tplPaging == '') {
                         $tplPaging = "@FILE:" . AS_SPATH . 'templates/paging1.tpl.html';
@@ -484,8 +490,10 @@ class AjaxSearchOutput
 
                     $chkPaging = new AsPhxParser($tplPaging);
                     if ($this->dbgTpl) {
-                        $this->asUtil->dbgRecord($chkPaging->getTemplate($tplPaging),
-                            "tplPaging template " . $tplPaging);
+                        $this->asUtil->dbgRecord(
+                            $chkPaging->getTemplate($tplPaging),
+                            "tplPaging template " . $tplPaging
+                        );
                     }
                     $varPaging1 = array();
                     if ($offset - $nbMax >= 0) {
@@ -531,8 +539,7 @@ class AjaxSearchOutput
                     $footer = $chkPaging->Render();
                     unset($varPaging1);
                     $chkPaging->CleanVars();
-                } elseif (($pagingType == 2) && ($nbrs >= $nbMax) && ($this->asCfg->isAjax)) {
-
+                } elseif ($pagingType == 2 && ($nbrs >= $nbMax && $this->asCfg->isAjax)) {
                     $tplPaging = $this->asCfg->cfg['tplPaging2'];
                     if ($tplPaging == '') {
                         $tplPaging = "@FILE:" . AS_SPATH . 'templates/paging2.tpl.html';
@@ -675,13 +682,11 @@ class AjaxSearchOutput
             include_once AS_PATH . "classes/asPhxParser.class.inc.php";
         }
         if (!$this->asCfg->isAjax) {
-
             $tplResults = $this->asCfg->cfg['tplResults'];
             if ($tplResults == '') {
                 $tplResults = "@FILE:" . AS_SPATH . 'templates/results.tpl.html';
             }
         } else {
-
             $tplResults = $this->asCfg->cfg['tplAjaxResults'];
             // if @FILE binding was passed in via ajax processor, verify the path is safe
             if (stristr($tplResults, '@FILE:') !== false) {
@@ -718,7 +723,6 @@ class AjaxSearchOutput
     public function _initChunks()
     {
         if (!$this->asCfg->isAjax) {
-
             $tplGrpResult = $this->asCfg->cfg['tplGrpResult'];
             if ($tplGrpResult == '') {
                 $tplGrpResult = "@FILE:" . AS_SPATH . 'templates/grpResult.tpl.html';
@@ -729,7 +733,6 @@ class AjaxSearchOutput
                 $tplResult = "@FILE:" . AS_SPATH . 'templates/result.tpl.html';
             }
         } else {
-
             $tplGrpResult = $this->asCfg->cfg['tplAjaxGrpResult'];
             if ($tplGrpResult == '') {
                 $tplGrpResult = "@FILE:" . AS_SPATH . 'templates/ajaxGrpResult.tpl.html';
@@ -745,11 +748,15 @@ class AjaxSearchOutput
         $this->chkResult = new AsPhxParser($tplResult);
         $this->tplRes = "@CODE:" . $this->chkResult->template;
         if ($this->dbgTpl) {
-            $this->asUtil->dbgRecord($this->chkGrpResult->getTemplate($tplGrpResult),
-                "tplGrpResult template" . $tplGrpResult);
+            $this->asUtil->dbgRecord(
+                $this->chkGrpResult->getTemplate($tplGrpResult),
+                "tplGrpResult template" . $tplGrpResult
+            );
             if ($this->chkResults) {
-                $this->asUtil->dbgRecord($this->chkResults->getTemplate($tplResult),
-                    "tplResult template " . $tplResult);
+                $this->asUtil->dbgRecord(
+                    $this->chkResults->getTemplate($tplResult),
+                    "tplResult template " . $tplResult
+                );
             }
         }
     }
@@ -868,7 +875,6 @@ class AjaxSearchOutput
      */
     public function _setResultDisplayed($row)
     {
-
         $id = $this->scMain['id'];
         $this->varResult[$id] = $row[$id];
 
@@ -962,8 +968,11 @@ class AjaxSearchOutput
         }
         $hClass = $this->asClass['highlight'];
         if ($this->asCfg->cfg['highlightResult'] && $hClass) {
-            $resultLink = $modx->makeUrl($row[$id], '',
-                'searched=' . urlencode($this->asCtrl->searchString) . '&amp;advsearch=' . urlencode($this->asCtrl->advSearch) . '&amp;highlight=' . urlencode($hClass));
+            $resultLink = $modx->makeUrl(
+                $row[$id],
+                '',
+                'searched=' . urlencode($this->asCtrl->searchString) . '&amp;advsearch=' . urlencode($this->asCtrl->advSearch) . '&amp;highlight=' . urlencode($hClass)
+            );
         } else {
             $resultLink = $modx->makeUrl($row[$id]);
         }
@@ -998,12 +1007,12 @@ class AjaxSearchOutput
         global $modx;
         if ($this->asCfg->cfg['breadcrumbs']) {
             if ($this->asCfg->cfg['bCrumbsInfo']['type'] == 'function') {
-
-                $bc = $this->asCfg->cfg['bCrumbsInfo']['name']($this->scMain, $row,
-                    $this->asCfg->cfg['bCrumbsInfo']['params']);
+                $bc = $this->asCfg->cfg['bCrumbsInfo']['name'](
+                    $this->scMain,
+                    $row,
+                    $this->asCfg->cfg['bCrumbsInfo']['params']
+                );
             } elseif ($this->asResults->getWithContent()) {
-
-
                 $current_id = $modx->documentObject['id'];
                 $current_parent = $modx->documentObject['parent'];
                 $current_pagetitle = $modx->documentObject['pagetitle'];
@@ -1021,8 +1030,10 @@ class AjaxSearchOutput
                 $modx->documentObject['menutitle'] = $row['menutitle'];
                 $modx->documentObject['description'] = $row['description'];
 
-                $bc = $modx->runSnippet($this->asCfg->cfg['bCrumbsInfo']['name'],
-                    $this->asCfg->cfg['bCrumbsInfo']['params']);
+                $bc = $modx->runSnippet(
+                    $this->asCfg->cfg['bCrumbsInfo']['name'],
+                    $this->asCfg->cfg['bCrumbsInfo']['params']
+                );
 
                 $modx->documentObject['id'] = $current_id;
                 $modx->documentObject['parent'] = $current_parent;
@@ -1100,13 +1111,12 @@ class AjaxSearchOutput
     {
         $otherOffset = array();
         for ($i = 0; $i < $this->asResults->nbGroups; $i++) {
-            if (($i != $ig) && ($this->asResults->groupResults[$i]['offset'] != 0)) {
+            if ($i != $ig && $this->asResults->groupResults[$i]['offset'] != 0) {
                 $otherOffset[] = (string)$i . ',' . (string)$this->asResults->groupResults[$i]['offset'];
             }
         }
-        $output = implode(',', $otherOffset);
 
-        return $output;
+        return implode(',', $otherOffset);
     }
 
     /**
@@ -1170,7 +1180,6 @@ class AjaxSearchOutput
         global $modx;
         $typeAs = $this->asCfg->cfg['ajaxSearch'];
         if ($typeAs) {
-
             if ($this->asCfg->cfg['jscript'] == 'jquery') {
                 if ($this->asCfg->cfg['addJscript']) {
                     $modx->regClientStartupScript($this->asCfg->cfg['jsJquery']);
@@ -1339,8 +1348,6 @@ EOD;
      */
     public function _updateAsfPaginate($ig, & $jsonPairs)
     {
-
-        $resultsCateg = array();
         $resultsCateg = $this->asResults->getResultsCateg();
 
         $ctgnm = array();
@@ -1350,8 +1357,6 @@ EOD;
         }
         $sctgnm = $this->_getJsonArray($ctgnm);
         $jsonPairs[] = $this->_getJsonPair('ctgnm', $sctgnm);
-
-        return;
     }
 
     /**
@@ -1361,8 +1366,6 @@ EOD;
      */
     public function _updateAsf(& $jsonPairs)
     {
-
-        $resultsCateg = array();
         $resultsCateg = $this->asResults->getResultsCateg();
         if ($this->dbgRes) {
             $this->asUtil->dbgRecord($resultsCateg, "getResultsCateg");
@@ -1372,8 +1375,6 @@ EOD;
         $jsonPairs[] = $this->_getJsonPair('ctgnm', $ctgnm);
         $ctgnb = $this->_getJsonArray($resultsCateg['nb']);
         $jsonPairs[] = $this->_getJsonPair('ctgnb', $ctgnb);
-
-        return;
     }
 
     /**
@@ -1406,9 +1407,8 @@ EOD;
     {
         $value = addslashes($value);
         $value = str_replace(array("\r\n", "\r", "\n"), ' ', $value);
-        $jsonPair = '"' . $key . '":"' . $value . '"';
 
-        return $jsonPair;
+        return '"' . $key . '":"' . $value . '"';
     }
 
     /**
@@ -1419,8 +1419,6 @@ EOD;
      */
     public function _getJson($pairs)
     {
-        $json = '{' . implode(',', $pairs) . '}';
-
-        return $json;
+        return '{' . implode(',', $pairs) . '}';
     }
 }

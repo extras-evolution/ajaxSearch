@@ -363,7 +363,7 @@ class AjaxSearchRequest
             foreach ($this->scJoined as $joined) {
                 $jpref = $joined['tb_alias'];
                 $nbd = count($joined['displayed']);
-                for ($d = 0;$d < $nbd;$d++) {
+                for ($d = 0; $d < $nbd; $d++) {
                     $f = 'GROUP_CONCAT( DISTINCT n' . $jpref . '.' . $joined['displayed'][$d];
                     $f.= ' SEPARATOR "' . $joined['concat_separator'] . '" ) AS ' . $jpref . '_' . $joined['displayed'][$d];
                     $fields[] = $f;
@@ -419,7 +419,7 @@ class AjaxSearchRequest
 
         //left join with Tv defined as table field
         if (isset($this->scTvs['tvs'])) {
-            foreach($this->scTvs['tvs'] as $scTv) {
+            foreach ($this->scTvs['tvs'] as $scTv) {
                 $f = 'LEFT JOIN( ' . $scTv['sql'] . ' ) AS ' . $scTv['tb_alias'];
                 $f.= ' ON ' . $this->scMain['tb_alias'] . '.' . $scTv['main'] . ' = ';
                 $f.= $scTv['tb_alias'] . '.' . $scTv['join'];
@@ -462,14 +462,15 @@ class AjaxSearchRequest
         }
         return count($where) > 0 ? '(' . implode(' AND ', $where) . ')' : '1';
     }
+
     /**
      * Get the "GROUP BY" clause of the AS query
      */
     public function _getGroupBy()
     {
-        $groupByClause = $this->scMain['tb_alias'] . '.' . $this->scMain['id'];
-        return $groupByClause;
+        return $this->scMain['tb_alias'] . '.' . $this->scMain['id'];
     }
+
     /**
      * Get the "HAVING" clause of the AS query
      */
@@ -480,19 +481,29 @@ class AjaxSearchRequest
             $like = $this->_getWhereForm($advSearch);
             $whereOper = $this->_getWhereOper($advSearch);
             $whereStringOper = $this->_getWhereStringOper($advSearch);
-            if (isset($this->scMain['searchable'])) foreach ($this->scMain['searchable'] as $searchable) $hvg[] = '(' . $this->scMain['tb_alias'] . '.' . $searchable . $like . ')';
-
-            if ($advSearch != NOWORDS) {
-                if (isset($this->scJoined)) foreach ($this->scJoined as $joined) {
-                    $jpref = $joined['tb_alias'];
-                    if (isset($joined['searchable'])) foreach ($joined['searchable'] as $searchable) $hvg[] = '(' . $jpref . '_' . $searchable . $like . ')';
+            if (isset($this->scMain['searchable'])) {
+                foreach ($this->scMain['searchable'] as $searchable) {
+                    $hvg[] = '(' . $this->scMain['tb_alias'] . '.' . $searchable . $like . ')';
                 }
-                if (isset($this->scTvs['tvs'])) foreach ($this->scTvs['tvs'] as $scTv) {
-                    $jpref = $scTv['tb_alias'];
-                    $hvg[] = '(`' . $scTv['name'] . '`' . $like . ')';
+            }
+            if ($advSearch != NOWORDS) {
+                if (isset($this->scJoined)) {
+                    foreach ($this->scJoined as $joined) {
+                        $jpref = $joined['tb_alias'];
+                        if (isset($joined['searchable'])) {
+                            foreach ($joined['searchable'] as $searchable) {
+                                $hvg[] = '(' . $jpref . '_' . $searchable . $like . ')';
+                            }
+                        }
+                    }
+                }
+                if (isset($this->scTvs['tvs'])) {
+                    foreach ($this->scTvs['tvs'] as $scTv) {
+                        $jpref = $scTv['tb_alias'];
+                        $hvg[] = '(`' . $scTv['name'] . '`' . $like . ')';
+                    }
                 }
             } else {
-
                 if (isset($this->scJoined)) foreach ($this->scJoined as $joined) {
                     $jpref = $joined['tb_alias'];
                     if (isset($joined['searchable'])) foreach ($joined['searchable'] as $searchable) {
@@ -515,8 +526,9 @@ class AjaxSearchRequest
                     if ($namedSearchTerm != $searchTerm) {
                         $_having[1] = preg_replace('/word/', $namedSearchTerm, $havingSubClause);
                         $having[] = '(' . implode(' OR ', $_having) . ')';
+                    } else {
+                        $having[] = $_having[0];
                     }
-                    else $having[] = $_having[0];
                 }
                 $havingClause = '(' . implode($whereStringOper, $having) . ')';
             }
@@ -524,31 +536,34 @@ class AjaxSearchRequest
         }
 
         if ($fClause) {
-            $havingClause_array[] = '(' . $fClause . ')';;
+            $havingClause_array[] = '(' . $fClause . ')';
         }
         $havingClause = implode(' AND ',$havingClause_array);
         $havingClause = ($havingClause) ? $havingClause : '1';
         return $havingClause;
     }
+
     /**
      * Get the "GROUP BY" clause of the AS query
      */
     public function _getOrderBy()
     {
-        if (isset($this->scCateg)) $orderFields[] = 'category ASC';
+        if (isset($this->scCateg)) {
+            $orderFields[] = 'category ASC';
+        }
         if ($this->cfg['order']) {
-            $order = array_map('trim',explode(',', $this->cfg['order']));
+            $order = array_map('trim', explode(',', $this->cfg['order']));
             foreach ($order as $ord) {
                 $ordElt = explode(' ',$ord);
                 $ordby = '`' . $ordElt[0] . '`';
-                if (isset($ordElt[1]) && ($ordElt[1] == 'ASC' || $ordElt[1] == 'DESC')) $ordby .= ' ' . $ordElt[1];
+                if (isset($ordElt[1]) && ($ordElt[1] == 'ASC' || $ordElt[1] == 'DESC')) {
+                    $ordby .= ' ' . $ordElt[1];
+                }
                 $orderBy[] = $ordby;
             }
             $orderFields[] = implode(',', $orderBy);
         }
-        if (count($orderFields) > 0) $orderByClause = implode(', ', $orderFields);
-        else $orderByClause = '1';
-        return $orderByClause;
+        return count($orderFields) > 0 ? implode(', ', $orderFields) : '1';
     }
     /**
      * Get select statement for a joined table
@@ -562,43 +577,60 @@ class AjaxSearchRequest
 
         $fields[] = $joined['tb_alias'] . '.' . $joined['id'];
 
-        if (isset($joined['displayed'])) foreach ($joined['displayed'] as $displayed) $fields[] = $joined['tb_alias'] . '.' . $displayed;
+        if (isset($joined['displayed'])) {
+            foreach ($joined['displayed'] as $displayed) {
+                $fields[] = $joined['tb_alias'] . '.' . $displayed;
+            }
+        }
 
-        if ($joined['join'] != $joined['id']) $fields[] = $joined['tb_alias'] . '.' . $joined['join'];
+        if ($joined['join'] != $joined['id']) {
+            $fields[] = $joined['tb_alias'] . '.' . $joined['join'];
+        }
         $fieldsClause = implode(', ', $fields);
 
         $from[] = $joined['tb_name'] . ' ' . $joined['tb_alias'];
 
-        if (isset($joined['jfilters'])) foreach ($joined['jfilters'] as $jfilter) {
-            $f = 'INNER JOIN ' . $jfilter['tb_name'] . ' ' . $jfilter['tb_alias'];
-            $f.= ' ON ' . $joined['tb_alias'] . '.' . $jfilter['main'] . ' = ' . $jfilter['tb_alias'] . '.' . $jfilter['join'];
-            $from[] = $f;
+        if (isset($joined['jfilters'])) {
+            foreach ($joined['jfilters'] as $jfilter) {
+                $f = 'INNER JOIN ' . $jfilter['tb_name'] . ' ' . $jfilter['tb_alias'];
+                $f.= ' ON ' . $joined['tb_alias'] . '.' . $jfilter['main'] . ' = ' . $jfilter['tb_alias'] . '.' . $jfilter['join'];
+                $from[] = $f;
+            }
         }
         $fromClause = implode(' ', $from);
 
-        if (isset($joined['filters'])) foreach ($joined['filters'] as $filter) {
-            $where[] = $this->_getFilter($joined['tb_alias'], $filter);
+        if (isset($joined['filters'])) {
+            foreach ($joined['filters'] as $filter) {
+                $where[] = $this->_getFilter($joined['tb_alias'], $filter);
+            }
         }
-        if (isset($joined['jfilters'])) foreach ($joined['jfilters'] as $jfilter) {
-            $where[] = $this->_getFilter($jfilter['tb_alias'], $jfilter);
+        if (isset($joined['jfilters'])) {
+            foreach ($joined['jfilters'] as $jfilter) {
+                $where[] = $this->_getFilter($jfilter['tb_alias'], $jfilter);
+            }
         }
-        if (count($where) > 0) {
-            for ($i = 0;$i < count($where);$i++) $where[$i] = '(' . $where[$i] . ')';
+        $total = count($where);
+        if ($total > 0) {
+            for ($i = 0; $i < $total; $i++) {
+                $where[$i] = '(' . $where[$i] . ')';
+            }
             $whl[] = implode(' AND ', $where);
         }
 
-        if (($joined['tb_alias'] != 'tv')) {
+        if ($joined['tb_alias'] != 'tv') {
             if ($searchString) {
                 $stw = $this->_getSearchTermsWhere($joined,$searchString,$advSearch);
-                if (!empty($stw)) $whl[] = '(' . $stw . ')';
+                if (!empty($stw)) {
+                    $whl[] = '(' . $stw . ')';
+                }
             }
             if (count($whl)) {
                 $whereClause = '(' . implode(' AND ',$whl). ')';
                 $subSelect = 'SELECT DISTINCT ' . $fieldsClause . ' FROM ' . $fromClause . ' WHERE ' . $whereClause;
+            } else {
+                $subSelect = 'SELECT DISTINCT ' . $fieldsClause . ' FROM ' . $fromClause;
             }
-            else $subSelect = 'SELECT DISTINCT ' . $fieldsClause . ' FROM ' . $fromClause;
-        }
-        else {
+        } else {
             $subSelect = 'SELECT DISTINCT ' . $fieldsClause . ' FROM ' . $fromClause;
         }
         return $subSelect;
@@ -614,8 +646,7 @@ class AjaxSearchRequest
         $where = $this->_getSubFilter($alias, $filter);
         if (isset($filter['or'])) {
             $or = $filter['or'];
-            if (isset($or['tb_alias'])) $alias = $or['tb_alias'];
-            else $alias = $this->scMain['tb_alias'];
+            $alias = isset($or['tb_alias']) ? $or['tb_alias'] : $this->scMain['tb_alias'];
             $where = '(' . $where . ' OR ' . $this->_getFilter($alias, $or) . ')';
         }
         return $where;
@@ -629,27 +660,22 @@ class AjaxSearchRequest
     public function _getSubFilter($alias, $filter)
     {
         $where = '';
-
-        if (($filter['oper'] == '=') || ($filter['oper'] == 'EQUAL')) {
+        if ($filter['oper'] == '=' || $filter['oper'] == 'EQUAL') {
             $where.= $alias . '.' . $filter['field'] . '=' . $filter['value'];
-        }
-
-        else if (($filter['oper'] == '>') || ($filter['oper'] == 'GREAT THAN')) {
+        } elseif ($filter['oper'] == '>' || $filter['oper'] == 'GREAT THAN') {
             $where.= $alias . '.' . $filter['field'] . '>' . $filter['value'];
-        }
-
-        else if (($filter['oper'] == '<') || ($filter['oper'] == 'LESS THAN')) {
+        } elseif ($filter['oper'] == '<' || $filter['oper'] == 'LESS THAN') {
             $where.= $alias . '.' . $filter['field'] . '<' . $filter['value'];
-        }
-
-        else if (($filter['oper'] == 'in') || ($filter['oper'] == 'IN')) {
+        } elseif ($filter['oper'] == 'in' || $filter['oper'] == 'IN') {
             $where.= $alias . '.' . $filter['field'] . ' IN (' . $filter['value'] . ')';
-        }
-
-        else if (($filter['oper'] == 'not in') || ($filter['oper'] == 'NOT IN')) {
+        } elseif ($filter['oper'] == 'not in' || $filter['oper'] == 'NOT IN') {
             $where.= $alias . '.' . $filter['field'] . ' NOT IN (' . $filter['value'] . ')';
         }
-        if ($where != '') $where = '(' . $where . ')';
+
+        if ($where != '') {
+            $where = '(' . $where . ')';
+        }
+
         return $where;
     }
 
@@ -659,7 +685,7 @@ class AjaxSearchRequest
      * @param $advSearch
      * @return string
      */
-    public function _getSearchTermsWhere($joined,$searchString,$advSearch)
+    public function _getSearchTermsWhere($joined, $searchString, $advSearch)
     {
         $whereClause = '';
         if (!empty($joined['searchable'])) {
@@ -668,15 +694,22 @@ class AjaxSearchRequest
             $type = ($advSearch == 'allwords') ? 'oneword' : $advSearch;
             $whereStringOper = $this->_getWhereStringOper($type);
 
-            foreach($joined['searchable'] as $searchable) $whsc[] = '(' . $joined['tb_alias'] . '.' . $searchable . $like .')';
+            foreach ($joined['searchable'] as $searchable) {
+                $whsc[] = '(' . $joined['tb_alias'] . '.' . $searchable . $like .')';
+            }
             if (count($whsc)) {
-                $whereSubClause = implode($whereOper,$whsc);
+                $whereSubClause = implode($whereOper, $whsc);
 
                 $search = array();
-                if ($advSearch == 'exactphrase') $search[] = $searchString;
-                else $search = explode(' ',$searchString);
+                if ($advSearch === 'exactphrase') {
+                    $search[] = $searchString;
+                } else {
+                    $search = explode(' ', $searchString);
+                }
 
-                foreach($search as $searchTerm) $where[]=   preg_replace('/word/', preg_quote($searchTerm), $whereSubClause);
+                foreach ($search as $searchTerm) {
+                    $where[] = preg_replace('/word/', preg_quote($searchTerm, '/'), $whereSubClause);
+                }
 
                 $whereClause = implode($whereStringOper,$where);
             }
@@ -755,7 +788,7 @@ class AjaxSearchRequest
 
         if ($mode === 'simple') {
             $i = 1;
-            foreach($tvs_array as $tv) {
+            foreach ($tvs_array as $tv) {
                 $rs = $modx->db->select("DISTINCT id", $this->_getShortTableName('site_tmplvars'), "name='{$tv}'");
                 $id = $modx->db->getValue($rs);
 
@@ -778,7 +811,11 @@ class AjaxSearchRequest
             }
         } else { // mode = concat
             $lstTvs = "'" . implode("','",$tvs_array) . "'";
-            $rs = $modx->db->select("GROUP_CONCAT( DISTINCT CAST(id AS CHAR) SEPARATOR \",\" ) AS ids", $this->_getShortTableName('site_tmplvars'), "name in ({$lstTvs})");
+            $rs = $modx->db->select(
+                "GROUP_CONCAT( DISTINCT CAST(id AS CHAR) SEPARATOR \",\" ) AS ids",
+                $this->_getShortTableName('site_tmplvars'),
+                "name in ({$lstTvs})"
+            );
             $ids = $modx->db->getValue($rs);
 
             $subselect = "SELECT DISTINCT " . $abrev . ".contentid , " . $abrev . ".value ";
@@ -817,8 +854,7 @@ class AjaxSearchRequest
 
         if ($tvSign === '+') {
             $tvs_array = $tvList ? explode(',',$tvList) : $this->_getSiteTvs();
-        }
-        else {
+        } else {
             $allTvs_array = $this->_getSiteTvs();
             $minusTvs_array = explode(',',$tvList);
             $tvs_array = array_diff($allTvs_array, $minusTvs_array);
@@ -836,7 +872,9 @@ class AjaxSearchRequest
         $tblName = $modx->getFullTableName('site_tmplvars');
         $rs = $modx->db->select("GROUP_CONCAT( DISTINCT name SEPARATOR ',' ) AS list", $tblName, "type='text'");
         $list = $modx->db->getValue($rs);
-        if ($list) $tvs_array = explode(',',$list);
+        if ($list) {
+            $tvs_array = explode(',',$list);
+        }
         return $tvs_array;
     }
 
@@ -847,7 +885,11 @@ class AjaxSearchRequest
     {
         $groups = explode(',', $ids);
         $nbg = count($groups);
-        for ($i = 0;$i < $nbg;$i++) if (preg_match('/^[0-9]+$/', $groups[$i]) == 0) return false;
+        for ($i = 0;$i < $nbg;$i++) {
+            if (preg_match('/^[0-9]+$/', $groups[$i]) == 0) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -908,7 +950,9 @@ class AjaxSearchRequest
         $idnames = $modx->db->getColumn('id', $rs);
         if ($idnames) {
             $results = $modx->getTemplateVarOutput($idnames,$docid);
-            if (!$results) $results = array();
+            if (!$results) {
+                $results = array();
+            }
         }
         return $results;
     }
