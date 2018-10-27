@@ -14,7 +14,9 @@
  *
  */
 
-define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
+if (! defined('GROUP_CONCAT_LENGTH')) {
+    define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
+}
 
 class AjaxSearchRequest
 {
@@ -120,7 +122,7 @@ class AjaxSearchRequest
         $this->withContent = false;
         $part = explode('|', $this->cfg['whereSearch']);
         foreach ($part as $p) {
-            list($ptable, $pfields) = explode(':', $p);
+            list($ptable, $pfields) = explode(':', $p . ':');
             switch ($ptable) {
                 case 'content':
                     $this->scMain = array(
@@ -542,7 +544,7 @@ class AjaxSearchRequest
                 if (isset($ordElt[1]) && ($ordElt[1] == 'ASC' || $ordElt[1] == 'DESC')) $ordby .= ' ' . $ordElt[1];
                 $orderBy[] = $ordby;
             }
-			$orderFields[] = implode(',', $orderBy);
+            $orderFields[] = implode(',', $orderBy);
         }
         if (count($orderFields) > 0) $orderByClause = implode(', ', $orderFields);
         else $orderByClause = '1';
@@ -659,26 +661,26 @@ class AjaxSearchRequest
      */
     public function _getSearchTermsWhere($joined,$searchString,$advSearch)
     {
-		$whereClause = '';
+        $whereClause = '';
         if (!empty($joined['searchable'])) {
-			$like = $this->_getWhereForm($advSearch);
-			$whereOper = $this->_getWhereOper($advSearch);
-			$type = ($advSearch == 'allwords') ? 'oneword' : $advSearch;
-			$whereStringOper = $this->_getWhereStringOper($type);
+            $like = $this->_getWhereForm($advSearch);
+            $whereOper = $this->_getWhereOper($advSearch);
+            $type = ($advSearch == 'allwords') ? 'oneword' : $advSearch;
+            $whereStringOper = $this->_getWhereStringOper($type);
 
-			foreach($joined['searchable'] as $searchable) $whsc[] = '(' . $joined['tb_alias'] . '.' . $searchable . $like .')';
-			if (count($whsc)) {
-				$whereSubClause = implode($whereOper,$whsc);
+            foreach($joined['searchable'] as $searchable) $whsc[] = '(' . $joined['tb_alias'] . '.' . $searchable . $like .')';
+            if (count($whsc)) {
+                $whereSubClause = implode($whereOper,$whsc);
 
-				$search = array();
-				if ($advSearch == 'exactphrase') $search[] = $searchString;
-				else $search = explode(' ',$searchString);
+                $search = array();
+                if ($advSearch == 'exactphrase') $search[] = $searchString;
+                else $search = explode(' ',$searchString);
 
-				foreach($search as $searchTerm) $where[]=   preg_replace('/word/', preg_quote($searchTerm), $whereSubClause);
+                foreach($search as $searchTerm) $where[]=   preg_replace('/word/', preg_quote($searchTerm), $whereSubClause);
 
-				$whereClause = implode($whereStringOper,$where);
-			}
-		}
+                $whereClause = implode($whereStringOper,$where);
+            }
+        }
         return $whereClause;
     }
 
@@ -861,7 +863,7 @@ class AjaxSearchRequest
         $records = array();
 
         if (!$this->cfg['tvPhx']) {
-             $records = $modx->db->makeArray($rs);
+            $records = $modx->db->makeArray($rs);
         } else {
             $tvNames_array = isset($this->cfg['withTvs']) && ($this->cfg['withTvs']) ?
                 array_diff($this->_getTvsArray($this->cfg['tvPhx']), $this->scTvs['names']) :
@@ -897,12 +899,12 @@ class AjaxSearchRequest
         $where = count($tvNames_array) ? " AND name in ('" . implode("','",$tvNames_array) . "')" : '';
 
         $rs= $modx->db->select(
-			"DISTINCT tv.id AS id",
-			$modx->getFullTableName('site_tmplvars')." AS tv 
+            "DISTINCT tv.id AS id",
+            $modx->getFullTableName('site_tmplvars')." AS tv 
 				INNER JOIN " . $modx->getFullTableName('site_tmplvar_templates')." AS tvtpl ON tvtpl.tmplvarid = tv.id
 				LEFT JOIN " . $modx->getFullTableName('site_tmplvar_contentvalues')." AS tvc ON tvc.tmplvarid=tv.id AND tvc.contentid = '{$docid}'",
-			"tvc.contentid = '{$docid}' {$where}"
-			);
+            "tvc.contentid = '{$docid}' {$where}"
+        );
         $idnames = $modx->db->getColumn('id', $rs);
         if ($idnames) {
             $results = $modx->getTemplateVarOutput($idnames,$docid);

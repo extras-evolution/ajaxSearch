@@ -266,7 +266,7 @@ class AjaxSearchConfig
     {
         $ucfg = array();
         foreach ($this->cfg as $key => $value) {
-            if ($key !== 'subSearch' && $value != $this->dcfg[$key]) {
+            if ($key !== 'subSearch' && isset($this->dcfg[$key]) && $value != $this->dcfg[$key]) {
                 $ucfg[$key] = $this->cfg[$key];
             }
         }

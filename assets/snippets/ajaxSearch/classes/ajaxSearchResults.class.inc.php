@@ -14,7 +14,9 @@
  *
  */
 
-define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
+if (! defined('GROUP_CONCAT_LENGTH')) {
+    define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
+}
 
 class AjaxSearchResults {
 
@@ -135,6 +137,8 @@ class AjaxSearchResults {
     */
     function _getSubsiteParams($site, $subsite, &$msgErr) {
         $msgErr = '';
+        $sitecfg = array();
+        $subsitecfg = array();
 
         if ($site != DEFAULT_SITE) {
             $siteConfigFunction = SITE_CONFIG;
@@ -182,9 +186,9 @@ class AjaxSearchResults {
                 if ($this->asCfg->cfg['extractLength'] > EXTRACT_MAX) $this->asCfg->cfg['extractLength'] = EXTRACT_MAX;
             }
             if (isset($this->asCfg->cfg['extract'])) {
-                $extr = explode(':', $this->asCfg->cfg['extract']);
-                if (($extr[0] == '') || (!is_numeric($extr[0]))) $extr[0] = 0;
-                if (($extr[1] == '') || (is_numeric($extr[1]))) $extr[1] = 'content';
+                $extr = explode(':', $this->asCfg->cfg['extract'] . ':');
+                if ($extr[0] == '' || !is_numeric($extr[0])) $extr[0] = 0;
+                if ($extr[1] == '' || is_numeric($extr[1])) $extr[1] = 'content';
                 $this->asCfg->cfg['extract'] = $extr[0] . ":" . $extr[1];
             }
             if (isset($this->asCfg->cfg['opacity'])) {
@@ -222,7 +226,7 @@ class AjaxSearchResults {
             }
 
             // check the list of tvs enabled with "phxTvs" - filter the tv already enabled by withTvs
-            if ((isset($this->asCfg->cfg['withTvs'])) &&  ($this->asCfg->cfg['phxTvs'])){
+            if (isset($this->asCfg->cfg['withTvs']) && isset($this->asCfg->cfg['phxTvs'])){
                 unset($tv_array);
                 $tv_array = explode(':', $this->asCfg->cfg['phxTvs']);
                 $tvSign = $tv_array[0];
@@ -272,9 +276,11 @@ class AjaxSearchResults {
         $this->_initExtractVariables();
         $display = $this->asCfg->cfg['display'];
         $select = $this->_asRequest->asSelect;
+        $this->nbResults = 0;
+        $grpresults = array();
 
         if (($display == MIXED)) {
-            $this->asCfg->chooseConfig(DEFAULT_SITE, $DEFAULT_SUBSITE, $display);
+            $this->asCfg->chooseConfig(DEFAULT_SITE, DEFAULT_SUBSITE, $display);
             if (!isset($this->_groupMixedResults['length'])) {
                 $this->_groupMixedResults = $this->_setHeaderGroupResults(MIXED_SITES, $subsite, $display, 'N/A', $select, $nbrs);
             } else $this->_groupMixedResults['length']+= $nbrs;
@@ -432,13 +438,13 @@ class AjaxSearchResults {
     * Get the rank value
     */
     function _getRank($searchString, $advSearch, $field, $weight) {
-    $search = array();
+        $search = array();
         $rank = 0;
         if ($searchString && ($advSearch != NOWORDS)) {
             switch ($advSearch) {
                 case EXACTPHRASE:
                     $search[0] = $searchString;
-                break;
+                    break;
                 case ALLWORDS:
                 case ONEWORD:
                     $search = explode(" ", $searchString);
@@ -536,14 +542,14 @@ class AjaxSearchResults {
                     if ($left < 0) $left = 0;
                     if ($right > $textLength) $right = $textLength;
                     $extracts[] = array('word' => $searchTerm,
-                                        'wordLeft' => $wordLeft,
-                                        'wordRight' => $wordRight,
-                                        'rank' => $rank,
-                                        'left' => $left,
-                                        'right' => $right,
-                                        'etcLeft' => $this->asCfg->cfg['extractEllips'],
-                                        'etcRight' => $this->asCfg->cfg['extractEllips']
-                                        );
+                        'wordLeft' => $wordLeft,
+                        'wordRight' => $wordRight,
+                        'rank' => $rank,
+                        'left' => $left,
+                        'right' => $right,
+                        'etcLeft' => $this->asCfg->cfg['extractEllips'],
+                        'etcRight' => $this->asCfg->cfg['extractEllips']
+                    );
                 }
             }
 
@@ -596,7 +602,7 @@ class AjaxSearchResults {
             $finalExtract = $mbSubstr($finalExtract, 0, $mbStrlen($finalExtract) - $mbStrlen($this->asCfg->cfg['extractSeparator']));
         }
         else if ((($text !== '') && ($searchString !== '') && ($this->extractNb > 0) && ($advSearch == NOWORDS)) ||
-                   (($text !== '') && ($searchString == '') && ($this->extractNb > 0))) {
+            (($text !== '') && ($searchString == '') && ($this->extractNb > 0))) {
 
             if (($this->asCfg->dbCharset == 'utf8') && ($this->asCfg->cfg['mbstring'])) {
                 $mbSubstr = 'mb_substr';
@@ -655,7 +661,7 @@ class AjaxSearchResults {
         global $modx;
         $beforeFilter = array();
 
-        list($fsign,$listIds) = explode(':',$this->_pardoc);
+        list($fsign,$listIds) = explode(':',$this->_pardoc . ':');
         if (($fsign != 'in') && ($fsign != 'not in')) {
             $listIds = $fsign;
             $fsign = 'in';
@@ -667,9 +673,9 @@ class AjaxSearchResults {
                 case "parents":
                     $arrayIds = explode(",", $listIds);
                     $listIds = implode(',', $this->_getChildIds($arrayIds, $this->_depth));
-                break;
+                    break;
                 case "documents":
-                break;
+                    break;
             }
         }
         $beforeFilter['listIds'] = $listIds;
@@ -791,8 +797,8 @@ class AjaxSearchResults {
                     if ($custom($value[$this->_array_key], $custom_list)) $unset = 0;
                 }
                 break;
-            }
-            return $unset;
+        }
+        return $unset;
     }
     /*
     *  Get the Ids ready to be processed
@@ -845,8 +851,8 @@ class AjaxSearchResults {
     function _cleanIds($Ids) {
 
         $pattern = array('`(,)+`',
-        '`^(,)`',
-        '`(,)$`'
+            '`^(,)`',
+            '`(,)$`'
         );
         $replace = array(',', '', '');
         $Ids = preg_replace($pattern, $replace, $Ids);
@@ -1298,10 +1304,10 @@ class AjaxSearchResults {
 }
 
 /**
-* Returns the UTF-8 string corresponding to unicode value.
-* @param $num unicode value to convert.
-* @return string converted
-*/
+ * Returns the UTF-8 string corresponding to unicode value.
+ * @param $num unicode value to convert.
+ * @return string converted
+ */
 function code_to_utf8($num) {
     if ($num <= 0x7F) {
         return chr($num);
