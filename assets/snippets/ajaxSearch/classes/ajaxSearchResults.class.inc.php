@@ -840,7 +840,6 @@ class AjaxSearchResults
 
         $filter = $this->asCfg->cfg['filter'];
         if ($filter) {
-
             $searchString_array = array();
             if ($advSearch == EXACTPHRASE) $searchString_array[] = $searchString;
             else $searchString_array = explode(' ', $searchString);
@@ -860,7 +859,6 @@ class AjaxSearchResults
                 }
             }
             $filter = implode('|', $filter_array);
-
             $parsedFilters = array();
             $filters = explode($globalDelimiter, $filter);
             if ($filter && count($filters) > 0) {
@@ -871,7 +869,7 @@ class AjaxSearchResults
                         if (substr($filterArray[1], 0, 5) != "@EVAL") {
                             $this->_filterValue = $filterArray[1];
                         } else {
-                            $this->_filterValue = eval(substr($filterArray[1], 5));
+                            $this->_filterValue = eval(substr($filterArray[1], 6));
                         }
                         $this->_filtertype = (isset($filterArray[2])) ? $filterArray[2] : 1;
                         $results = array_filter($results, array($this, "_basicFilter"));
