@@ -1,6 +1,6 @@
 <?php
 /*
-hebrew.inc.php - for AjaxSearch 1.11.0
+hebrew.inc.php - for AjaxSearch 1.12.0
 Created by: KyleJ (kjaebker@muddydogpaws.com)
 Last Modified on 2014-12-09
 Description: Language strings for AjaxSearch

@@ -1,22 +1,27 @@
 <?php
-/* -----------------------------------------------------------------------------
-*
-*    Name: PHx (Placeholders Xtended)
-*    Version: 2.1.3
-*
-*    Author: Armand "bS" Pondman (apondman@zerobarrier.nl)
-*    Date: July 13, 2007
-*
-*  Adapted by Coroico for AjaxSearch => AsPHxParser
-*  Merge of the chunkie and PHxParser classes
-*  cleanVars and unsetPHxVariable functions added
-*
-*/
+/**
+ * -----------------------------------------------------------------------------
+ *
+ *    Name: PHx (Placeholders Xtended)
+ *    Version: 2.1.3
+ *
+ *    Author: Armand "bS" Pondman (apondman@zerobarrier.nl)
+ *    Date: July 13, 2007
+ *
+ *  Adapted by Coroico for AjaxSearch => AsPHxParser
+ *  Merge of the chunkie and PHxParser classes
+ *  cleanVars and unsetPHxVariable functions added
+ *
+ */
 
 class asPHxParser {
-    var $placeholders = array();
+    public $placeholders = array();
 
-    function __construct($template='',$maxpass=500) {
+    /**
+     * @param string $template
+     * @param int $maxpass
+     */
+    public function __construct($template='',$maxpass=500) {
         global $modx;
         $this->name = "PHx";
         $this->version = "2.1.3";
@@ -40,10 +45,10 @@ class asPHxParser {
         $modx->setPlaceholder("phx", "&_PHX_INTERNAL_&");
     }
 
-    // ====================================================================== parser part
-
-    // Plugin event hook for MODX
-    function OnParseDocument() {
+    /**
+     * Plugin event hook for MODX
+     */
+    public function OnParseDocument() {
         global $modx;
         // Get document output from MODX
         $template = $modx->documentOutput;
@@ -53,8 +58,13 @@ class asPHxParser {
         $modx->documentOutput = $template;
     }
 
-    // Parser: Preparation, cleaning and checkup
-    function Parse($template='') {
+    /**
+     * Preparation, cleaning and checkup
+     *
+     * @param string $template
+     * @return mixed|null|string|string[]
+     */
+    public function Parse($template='') {
         global $modx;
         // If we already reached max passes don't get at it again.
         if ($this->curPass == $this->maxPasses) return $template;
@@ -77,8 +87,13 @@ class asPHxParser {
         return $template;
     }
 
-    // Parser: Tag detection and replacements
-    function ParseValues($template='') {
+    /**
+     * Tag detection and replacements
+     *
+     * @param string $template
+     * @return mixed|string
+     */
+    public function ParseValues($template='') {
         global $modx;
 
         $this->curPass = $this->curPass + 1;
@@ -165,8 +180,14 @@ class asPHxParser {
         return $template;
     }
 
-    // Parser: modifier detection and eXtended processing if needed
-    function Filter($input, $modifiers) {
+    /**
+     * modifier detection and eXtended processing if needed
+     *
+     * @param $input
+     * @param $modifiers
+     * @return null|string
+     */
+    public function Filter($input, $modifiers) {
         global $modx;
         $output = $input;
         if (preg_match_all('~:([^:=]+)(?:=`(.*?)`(?=:[^:=]+|$))?~s',$modifiers, $matches)) {
@@ -335,9 +356,14 @@ class asPHxParser {
         return $output;
     }
 
-    // Returns the specified field from the user record
-    // positive userid = manager, negative integer = webuser
-    function ModUser($userid,$field) {
+    /**
+     * Returns the specified field from the user record positive userid = manager, negative integer = webuser
+     *
+     * @param $userid
+     * @param $field
+     * @return mixed
+     */
+    public function ModUser($userid,$field) {
         global $modx;
         if (!array_key_exists($userid, $this->cache["ui"])) {
             if (intval($userid) < 0) {
@@ -352,8 +378,14 @@ class asPHxParser {
         return $user[$field];
     }
 
-     // Returns true if the user id is in one the specified webgroups
-     function isMemberOfWebGroupByUserId($userid=0,$groupNames=array()) {
+    /**
+     * Returns true if the user id is in one the specified webgroups
+     *
+     * @param int $userid
+     * @param array $groupNames
+     * @return bool
+     */
+    public function isMemberOfWebGroupByUserId($userid=0,$groupNames=array()) {
         global $modx;
 
         // if $groupNames is not an array return false
@@ -379,8 +411,13 @@ class asPHxParser {
         return false;
      }
 
-    // Returns the value of a PHx/MODX placeholder.
-    function getPHxVariable($name) {
+    /**
+     * Returns the value of a PHx/MODX placeholder.
+     *
+     * @param $name
+     * @return mixed
+     */
+    public function getPHxVariable($name) {
         global $modx;
         // Check if this variable is created by PHx
         if (array_key_exists($name, $this->placeholders)) {
@@ -392,19 +429,29 @@ class asPHxParser {
         }
     }
 
-    // Sets a placeholder variable which can only be access by PHx
-    function setPHxVariable($name, $value) {
+    /**
+     * Sets a placeholder variable which can only be access by PHx
+     *
+     * @param $name
+     * @param $value
+     */
+    public function setPHxVariable($name, $value) {
         if ($name != "phx") $this->placeholders[$name] = $value;
     }
 
-    // unset all the placeholders - Added by coroico
-    function unsetPHxVariable() {
+    /**
+     * unset all the placeholders - Added by coroico
+     */
+    public function unsetPHxVariable() {
         unset($this->placeholders);
     }
 
-    // ====================================================================== chunkie part
-
-    function CreateVars($value = '', $key = '', $path = '') {
+    /**
+     * @param string $value
+     * @param string $key
+     * @param string $path
+     */
+    public function CreateVars($value = '', $key = '', $path = '') {
         $keypath = !empty($path) ? $path . "." . $key : $key;
         if (is_array($value)) {
             foreach ($value as $subkey => $subval) {
@@ -414,21 +461,35 @@ class asPHxParser {
             $this->setPHxVariable($keypath, $value);
         }
     }
-    function AddVar($name, $value) {
+
+    /**
+     * @param $name
+     * @param $value
+     */
+    public function AddVar($name, $value) {
         $this->CreateVars($value, $name);
     }
 
-    // Added by coroico
-    function CleanVars() {
+    /**
+     * Added by coroico
+     */
+    public function CleanVars() {
         $this->unsetPHxVariable();
     }
 
-    function Render() {
+    /**
+     * @return mixed|null|string|string[]
+     */
+    public function Render() {
         $template = $this->Parse($this->template);
         return $template;
     }
 
-    function getTemplate($tpl) {
+    /**
+     * @param $tpl
+     * @return bool|string
+     */
+    public function getTemplate($tpl) {
         global $modx;
         $template = "";
         if ($modx->getChunk($tpl) != "") {

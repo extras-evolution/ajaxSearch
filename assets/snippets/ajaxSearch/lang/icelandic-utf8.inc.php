@@ -1,6 +1,6 @@
 <?php
 /*
-icelandic.inc.php - for AjaxSearch 1.11.0
+icelandic.inc.php - for AjaxSearch 1.12.0
 Created by: Bjarki (bb@bjarki.net)
 Last Modified on 2014-12-09
 Description: Language strings for AjaxSearch

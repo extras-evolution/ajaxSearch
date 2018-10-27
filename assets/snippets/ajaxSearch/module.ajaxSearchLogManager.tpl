@@ -4,15 +4,15 @@
 * Display the content of the AjaxSearch Log table in the manager
 *
 * @category module
-* @version 	1.11.0
+* @version 	1.12.0
 * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
 * @internal	@modx_category Search
 * @author   Coroico
-* @date     12/04/2016
+* @date     27/10/2018
 */
 
 Define('NB_LINES',100); // number of rows displayed
-Define('AJAXSEARCH_LOG', 'ajaxsearch_log'); // ajaxSearch table log. 
+Define('AJAXSEARCH_LOG', 'ajaxsearch_log'); // ajaxSearch table log.
 
 function getLogs($tb,$nb){
     global $modx;
@@ -39,8 +39,8 @@ switch($opcode) {
 <head>
 <link rel="stylesheet" type="text/css" href="media/style/{$modx->config['manager_theme']}/style.css" />
 <style type="text/css">
-body { 
-  color: #222; 
+body {
+  color: #222;
   font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
   font-size: 75%;
 }

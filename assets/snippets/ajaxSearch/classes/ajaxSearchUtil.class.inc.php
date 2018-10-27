@@ -1,36 +1,43 @@
 <?php
-/* -----------------------------------------------------------------------------
-* Snippet: AjaxSearch
-* -----------------------------------------------------------------------------
-* @package  AjaxSearchUtil
-*
-* @author       Coroico - www.evo.wangba.fr
-* @version      1.11.0
-* @date         12/04/2016
-*
-* Purpose:
-*    The AjaxSearchUtil class contains some util methods
-*
-*/
+/**
+ * -----------------------------------------------------------------------------
+ * Snippet: AjaxSearch
+ * -----------------------------------------------------------------------------
+ * @package  AjaxSearchUtil
+ *
+ * @author       Coroico - www.evo.wangba.fr
+ * @version      1.12.0
+ * @date         27/10/2018
+ *
+ * Purpose:
+ *    The AjaxSearchUtil class contains some util methods
+ *
+ */
 
 define('AS_DBGDIR', AS_PATH . 'debug');
 define('AS_DBGFILE', 'ajaxSearch_log.txt');
 
-class AjaxSearchUtil {
+class AjaxSearchUtil
+{
+    public $level = 0;  // debug level
+    public $tstart;     // start time
+    public $dbg;        // first level of debuging
+    public $dbgTpl;     // debuging of templates
+    public $dbgRes;     // debuging of results
 
-    //public variables
-    var $level = 0;  // debug level
-    var $tstart;     // start time
-    var $dbg;        // first level of debuging
-    var $dbgTpl;     // debuging of templates
-    var $dbgRes;     // debuging of results
+    private $dbgFd;
+    private $current_pcre_backtrack;
 
-    //private variables
-    var $_dbgFd;
-    var $_current_pcre_backtrack;
-
-    function __construct($level=0, $version, $tstart, &$msgErr) {
+    /**
+     * @param int|string $level
+     * @param string $version
+     * @param int|string $tstart
+     * @param string $msgErr
+     */
+    public function __construct($level, $version, $tstart, &$msgErr)
+    {
         global $modx;
+        $level = (int)$level;
         $this->level = (abs($level) > 0 && abs($level) < 4) ? $level : 0;
         $this->dbg = ($this->level > 0);
         $this->dbgRes = ($this->level > 1);
@@ -38,79 +45,86 @@ class AjaxSearchUtil {
         $this->tstart = $tstart;
 
         $msgErr = '';
-        $header = 'AjaxSearch ' . $version . ' - Php' . phpversion() . ' - MySql ' . (method_exists($modx->db, 'getVersion') ? $modx->db->getVersion() : mysql_get_server_info());
+        $header = implode(' - ', array(
+            'AjaxSearch ' . $version .
+            'Php' . phpversion() .
+            'MySql ' . (method_exists($modx->db, 'getVersion') ? $modx->db->getVersion() : mysql_get_server_info())
+        ));
         if ($this->level > 0 && $level < 4) { // debug trace in a file
             $isWriteable = is_writeable(AS_DBGDIR);
             if ($isWriteable) {
                 $dbgFile = AS_DBGDIR . '/' . AS_DBGFILE;
-                $this->_dbgFd = fopen($dbgFile, 'w+');
+                $this->dbgFd = fopen($dbgFile, 'w+');
                 $this->dbgRecord($header);
-                fclose($this->_dbgFd);
-                $this->_dbgFd = fopen($dbgFile, 'a+');
-            }
-            else {
-                $msgErr = "<br /><h3>AjaxSearch error: to use the debug mode, " . AS_DBGDIR . " should be a writable directory.";
-                $msgErr .= " Change the permissions of this directory.</h3><br />";
+                fclose($this->dbgFd);
+                $this->dbgFd = fopen($dbgFile, 'a+');
+            } else {
+                $msgErr = '<br />' .
+                    '<h3>' .
+                        'AjaxSearch error: to use the debug mode, ' . AS_DBGDIR . ' should be a writable directory.' .
+                        'Change the permissions of this directory.' .
+                    '</h3>' .
+                    '<br />';
             }
         }
     }
-    /*
+
+    /**
     *  Set Debug log record
-    *
-    *  @access public
+     * @return void
     */
-    function dbgRecord() {
+    public function dbgRecord()
+    {
         $args = func_get_args();
         if ($this->level > 0) {
             // write trace in a file
             $when = date('[j-M-y h:i:s] ');
             $etime = $this->getElapsedTime();
-            $memory = sprintf("%.2fMb",memory_get_usage()/(1024*1024))." > ";
+            $memory = sprintf("%.2fMb", memory_get_usage()/(1024*1024)) . ' > ';
             $nba = count($args);
-            $result = $when . " " . $etime . "  " . $memory;
+            $result = implode(' ', array($when, $etime, $memory));
             if ($nba > 1) {
-                $result.= $args[1] . " : ";
+                $result.= $args[1] . ' : ';
             }
-            if (is_array($args[0])) {
-                $result.= print_r($args[0], true) . "\n";
-            } else $result.= $args[0] . "\n";
-            fwrite($this->_dbgFd, $result);
-            return true;
+            $result .= (is_array($args[0]) ? print_r($args[0], true) : $args[0]) . "\n";
+
+            fwrite($this->dbgFd, $result);
         }
-        return;
     }
-    /*
+
+    /**
     * Returns the elapsed time between the current time and tstart
     *
-    * @access public
-    * @param timestamp $start starting time
+    * @param int $start starting time
     * @return string Returns the elapsed time
     */
-    function getElapsedTime($start=0) {
+    public function getElapsedTime($start = 0)
+    {
         list($usec, $sec)= explode(' ', microtime());
         $tend= (float) $usec + (float) $sec;
-        if ($start) $eTime= ($tend - $start);
-        else $eTime= ($tend - $this->tstart);
-        $etime = sprintf("%.4fs",$eTime);
-        return $etime;
+        return sprintf('%.4fs', $start ? ($tend - $start) : ($tend - $this->tstart));
     }
-    /*
+
+    /**
     * Change the current PCRE Backtrack limit
     *
-    * @access public
     * @param int $backtrackLimit PCRE backtrack limit
     */
-    function setBacktrackLimit($backtrackLimit) {
-        $this->_current_pcre_backtrack = ini_get('pcre.backtrack_limit');
-        if (isset($dbg)) $this->dbgRecord($current_pcre_backtrack, "AjaxSearch - pcre.backtrack_limit");
-        ini_set( 'pcre.backtrack_limit', $backtrackLimit);
+    public function setBacktrackLimit($backtrackLimit)
+    {
+        $this->current_pcre_backtrack = ini_get('pcre.backtrack_limit');
+        if ($this->dbg) {
+            $this->dbgRecord($this->current_pcre_backtrack, "AjaxSearch - pcre.backtrack_limit");
+        }
+        ini_set('pcre.backtrack_limit', $backtrackLimit);
     }
-    /*
-    * Restore the initial PCRE Backtrack limit
-    *
-    * @access public
-    */
-    function restoreBacktrackLimit() {
-        ini_set( 'pcre.backtrack_limit', $this->_current_pcre_backtrack );
+
+    /**
+     * Restore the initial PCRE Backtrack limit
+     * @return void
+     */
+    public function restoreBacktrackLimit()
+    {
+        ini_set('pcre.backtrack_limit', $this->current_pcre_backtrack);
     }
 }

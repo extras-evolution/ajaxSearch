@@ -1,10 +1,10 @@
 /*
- * AjaxSearch 1.11.0 - clearDefault
+ * AjaxSearch 1.12.0 - clearDefault
  * Copyright (c) 2012 Coroico - www.modx.wangba.fr
  *
  * Licensed under the GPL license: http://www.gnu.org/copyleft/gpl.html
  */
- 
+
 // This code come from http://www.yourhtmlsource.com/forms/clearingdefaulttext.html
 
 function addEventAS(element,eventType,lamdaFunction,useCapture){if(element.addEventListener){element.addEventListener(eventType,lamdaFunction,useCapture);return true;}else if(element.attachEvent){var r=element.attachEvent('on'+eventType,lamdaFunction);return r;}else{return false;}}

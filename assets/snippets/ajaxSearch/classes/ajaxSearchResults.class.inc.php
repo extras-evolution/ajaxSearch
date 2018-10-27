@@ -1,17 +1,18 @@
 <?php
-/* -----------------------------------------------------------------------------
-* Snippet: AjaxSearch
-* -----------------------------------------------------------------------------
-* @package  AjaxSearchResults
-*
-* @author       Coroico - www.evo.wangba.fr
-* @version      1.11.0
-* @date         12/04/2016
-*
-* Purpose:
-*    The AjaxSearchResults class contains all functions and data used to manage Results
-*
-*/
+/**
+ * -----------------------------------------------------------------------------
+ * Snippet: AjaxSearch
+ * -----------------------------------------------------------------------------
+ * @package  AjaxSearchResults
+ *
+ * @author       Coroico - www.evo.wangba.fr
+ * @version      1.12.0
+ * @date         27/10/2018
+ *
+ * Purpose:
+ *    The AjaxSearchResults class contains all functions and data used to manage Results
+ *
+ */
 
 define('GROUP_CONCAT_LENGTH', 4096); // maximum length of the group concat
 
@@ -46,13 +47,6 @@ class AjaxSearchResults {
     var $_pardoc;
     var $_depth;
 
-    /*
-    *  Constructs the ajaxSearchResults object
-    *
-    *  @access public
-    */
-    function __construct() {
-    }
     /*
     *  Initializes the class into the proper context
     *

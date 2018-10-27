@@ -1,4 +1,8 @@
 #Changelog:
+27-oct-18 (1.12.0)
+- Some refactor
+- Security Fix
+
 11-jul-17 (1.11.0)
 - Refactor, no more use index-ajax.php
 
