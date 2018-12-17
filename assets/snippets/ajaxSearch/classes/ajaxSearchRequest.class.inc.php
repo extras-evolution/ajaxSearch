@@ -85,13 +85,14 @@ class AjaxSearchRequest
         $this->asSelect = '';
         if ($this->_initSearchContext($bsf)) {
             $fields = $this->_getFields();
+
             $from = $this->_getFrom($searchString, $advSearch);
             $where = $this->_getWhere();
             $groupBy = $this->_getGroupBy();
             $having = $this->_getHaving($searchString, $advSearch, $fClause);
             $orderBy = $this->_getOrderBy();
-            $this->asSelect = "SELECT $fields FROM $from WHERE $where";
-            $this->asSelect.= " GROUP BY $groupBy HAVING $having ORDER BY $orderBy";
+            $this->asSelect = "SELECT $fields FROM $from WHERE $where AND $having";
+            $this->asSelect.= " GROUP BY $groupBy  ORDER BY $orderBy";
             if ($this->scJoined !== null) {
                 $modx->db->query("SET group_concat_max_len = " . GROUP_CONCAT_LENGTH . ";");
             }
@@ -103,7 +104,6 @@ class AjaxSearchRequest
                 $this->asUtil->dbgRecord("End of select");
             }
             $results = $this->_appendTvs($records);
-            $modx->db->freeResult($records);
         }
         return $results;
     }
@@ -468,7 +468,15 @@ class AjaxSearchRequest
      */
     public function _getGroupBy()
     {
-        return $this->scMain['tb_alias'] . '.' . $this->scMain['id'];
+		$displayed = '';
+		if(count($this->scMain['displayed'])) {
+			$displayed = ', '.$this->scMain['tb_alias'] . '.'.implode(', '.$this->scMain['tb_alias'].'.',$this->scMain['displayed']);
+		}
+		$date = '';
+		if(count($this->scMain['date'])) {
+			$date = ', '.$this->scMain['tb_alias'] . '.'.implode(', '.$this->scMain['tb_alias'].'.',$this->scMain['date']);
+		}
+        return $this->scMain['tb_alias'] . '.' . $this->scMain['id'].$displayed.$date;
     }
 
     /**
@@ -492,7 +500,7 @@ class AjaxSearchRequest
                         $jpref = $joined['tb_alias'];
                         if (isset($joined['searchable'])) {
                             foreach ($joined['searchable'] as $searchable) {
-                                $hvg[] = '(' . $jpref . '_' . $searchable . $like . ')';
+                                $hvg[] = '(n' . $jpref . '.' . $searchable . $like . ')';
                             }
                         }
                     }
@@ -503,6 +511,7 @@ class AjaxSearchRequest
                         $hvg[] = '(`' . $scTv['name'] . '`' . $like . ')';
                     }
                 }
+				
             } else {
                 if (isset($this->scJoined)) foreach ($this->scJoined as $joined) {
                     $jpref = $joined['tb_alias'];
@@ -515,6 +524,7 @@ class AjaxSearchRequest
                     $hvg[] = '((`' . $scTv['name'] . '`' . $like . ') OR (`' . $scTv['name'] . '` IS NULL))';
                 }
             }
+			
             if (count($hvg) > 0) {
                 $havingSubClause = '(' . implode($whereOper, $hvg) . ')';
 
